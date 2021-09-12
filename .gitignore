@@ -1,0 +1,11 @@
+/API/__pycache__/
+/.ipynb_checkpoints
+/DataDragon/__pycache__
+/DataDragon/dragontail-11.10.1
+/.vscode
+/visualization
+/Utilities/.ipynb_checkpoints
+/processed_ftr
+/processed_csvs
+/parameters
+/__pycache__
