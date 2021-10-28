@@ -1,5 +1,6 @@
 from matplotlib import colors
 from matplotlib.patches import Patch
+from matplotlib.patches import Rectangle
 from tqdm import tqdm
 from os.path import exists
 from sklearn.metrics import roc_curve, auc
@@ -58,6 +59,51 @@ def scores_per_event(save=False, model='spa'):
     if save: plt.savefig('./visualization/score_per_event.png')
     else: plt.show()
     
+def box_per_event(save=False, model='spa'):
+    print('Loading datas...')
+    midx = modes.index(model)
+    fpath = mpath[midx]
+    tmp = pd.read_feather(fpath)
+
+    print('Creating figure...')
+    fig = plt.figure(figsize=(7, 7))
+    win_x_axis = [i+0.8 for i in range(len(elist))]
+    lose_x_axis = [i+1.2 for i in range(len(elist))]
+
+    winners = []
+    losers = []
+    for i, event in enumerate(elist):
+        # Winners
+        winner = tmp[(tmp['win'] == True) & (tmp[event] == 1)]['score'].tolist()
+        loser = tmp[(tmp['win'] == False) & (tmp[event] == 1)]['score'].tolist()
+
+        winners.append(winner)
+        losers.append(loser)
+
+    color = 'blue'
+    plt.boxplot(winners, positions=win_x_axis, patch_artist=True, widths=0.3, vert=False, boxprops=dict(facecolor=color, color=color, alpha=0.3),
+    capprops=dict(color=color, alpha=0.3), flierprops=dict(marker='|', markersize=1.3, color=color, markeredgecolor=color, alpha=0.1),
+    medianprops=dict(color=(0, 1, 1)), whiskerprops=dict(color=color, alpha=0.3))
+
+    color = 'red'
+    plt.boxplot(losers, positions=lose_x_axis, patch_artist=True, widths=0.3, vert=False, boxprops=dict(facecolor=color, color=color, alpha=0.3),
+    capprops=dict(color=color, alpha=0.3), flierprops=dict(marker='|', markersize=1.3, color=color, markeredgecolor=color, alpha=0.1),
+    medianprops=dict(color=(0, 1, 1)), whiskerprops=dict(color=color, alpha=0.3))
+
+    plt.yticks([i+1 for i in range(len(elist))], elist)
+    plt.xlabel('Score')
+    plt.ylabel('Event')
+
+    legend_elements = [Patch(facecolor='blue', alpha=0.3, edgecolor='b', label='Winner Team'),
+                        Patch(facecolor='red', alpha=0.3, edgecolor='r', label='Lost Team')]
+
+    plt.legend(handles=legend_elements, loc='upper right')
+
+    if save:
+        plt.savefig(f'./visualization/Box-Score-Event.png')
+        print('Figure saved')
+    else: plt.show()
+
 def match_score_timeline(save=False, models=['spa']):
     print('Loading datas...')
     mlist = pd.read_feather(path+'match_result_test.ftr')
@@ -101,7 +147,32 @@ def match_score_timeline(save=False, models=['spa']):
     
     if save: plt.savefig(f'./visualization/match_score_per_time_{mno}_{models}.png')
     plt.show()
-    
+
+def color_mapper(score, isempty, maxscore, ctype='IR'):
+    colors = []
+    for i in range(len(score)):
+        if isempty[i]: r, g, b = 1.0, 1.0, 1.0
+        elif ctype == 'IR':
+            r = 2*(score[i]/maxscore)
+            r = 1.0 if r > 1.0 else r
+            g = 2*(score[i]/maxscore) - 0.5
+            g = 0.0 if g < 0.0 else g
+            g = 1.0 if g > 1.0 else g
+            b = 1.0 - 2*(score[i]/maxscore)
+            b = 0.0 if b < 0.0 else b
+        elif ctype == 'RG':
+            r = score[i]/maxscore
+            g = 1 - (score[i]/maxscore)
+            b = 0.0
+        elif ctype == 'RB':
+            r = score[i]/maxscore
+            g = 0.0
+            b = 1 - (score[i]/maxscore)
+        else:
+            r, g, b = 1.0, 1.0, 1.0
+        colors.append((r, g, b))
+    return colors
+
 def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, role='JUNGLE', model='spa'):
     print('Loading datas...')
     mlist = pd.read_feather(path+'match_result_test.ftr')
@@ -112,37 +183,71 @@ def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, role='JUNGL
     idx = modes.index(model)
     fpath = mpath[idx]
     tmp = pd.read_feather(fpath)
-    tmp = tmp[(tmp['match_id'].isin(mlist)) & (tmp['win']==isWin) & (tmp[event]==1) & (tmp['player']<5)]
+    # tmp = tmp[(tmp['match_id'].isin(mlist)) & (tmp['win']==isWin) & (tmp[event]==1) & (tmp['player']<5)]
+    tmp = tmp[(tmp['win']==isWin) & (tmp[event]==1) & (tmp['player']<5)] # No sampling
 
     maxscore = tmp['score'].max()
     minscore = tmp['score'].min()
     data['max'] = maxscore
     data['min'] = minscore
     data['norm'] = colors.Normalize(vmin=minscore, vmax=maxscore)
-    data['data'] = tmp.sort_values(by='score', ascending=True)
+    data['data'] = tmp[tmp[role]==1][['x_position', 'y_position', 'score']]
 
-    print('Organizing datas...')
-    t = data['data'][data['data'][role]==1][['x_position', 'y_position', 'score']]
-    x = t['x_position'].tolist(),
-    y = t['y_position'].tolist(),
-    score = t['score'].tolist()
-    alpha = [s/data['max'] for s in score]
+    binsize = 0.004
+    bincount = int(1/binsize)
+    slices = []
+    # slicex, slicey, slicescore = [], [], []
+    # max_count = 0
+    for xi in range(bincount):
+        sliced_x = data['data'].loc[(xi*binsize <= tmp['x_position']) & (tmp['x_position'] <= (xi+1)*binsize)]
+        for yi in range(bincount):
+            # sliced_data = tmp.loc[(xi*binsize <= tmp['x_position']) & (tmp['x_position'] <= (xi+1)*binsize) & (yi*binsize <= tmp['y_position']) & (tmp['y_position'] <= (yi+1)*binsize)]
+            sliced_y = sliced_x.loc[(yi*binsize <= tmp['y_position']) & (tmp['y_position'] <= (yi+1)*binsize)]
+            score = sliced_y['score'].mean()
+            isempty = len(sliced_y['score']) == 0
 
-    print('Creating Plot...')
-    fig = plt.figure(figsize=(14, 11))
+            slices.append({
+                    'x': binsize*(xi+0.5),
+                    'y': binsize*(yi+0.5),
+                    's': score,
+                    'isempty': isempty
+            })
+            endstring = '\n' if (xi==(bincount-1) and yi==(bincount-1)) else '\r'
+            print('Slicing datas: %04s/%s x, %04s/%s y'%(xi, bincount, yi, bincount), end=endstring)
 
-    ax = fig.add_subplot(1, 1, 1, title=f'{event}-{role}')
-    ax.scatter(x=x, y=y, cmap=cm.cool, c=score, marker='.', alpha=alpha, norm=data['norm'])
+    fig = plt.figure(figsize=(11, 11))
+    ax = fig.add_subplot(title=f'{event}-{role}')
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
     ax.set(xlabel='x-position', ylabel='y-position')
 
-    tcbar = fig.colorbar(cm.ScalarMappable(cmap=cm.cool), ax=ax, ticks=[0, 1], location='left')
-    tcbar.ax.set_yticklabels(['%6.3f'%data['min'], '%6.3f'%data['max']])
+    slices = pd.DataFrame(slices)
+    x, y, score, isempty = slices['x'].tolist(), slices['y'].tolist(), slices['s'].tolist(), slices['isempty'].tolist()
+    ax.scatter(x, y, s=4, c=color_mapper(score, isempty, maxscore, ctype='RG'), marker='s')
+
+    # tcbar = fig.colorbar(cm.ScalarMappable(cmap=cm.cool), ax=ax, ticks=[0, 1], location='left')
+    # tcbar.ax.set_yticklabels(['%6.3f'%data['min'], '%6.3f'%data['max']])
+
+    # for xi in range(bincount):
+    #     for yi in range(bincount):
+    #         score = slices[xi][yi][0]
+    #         count = slices[xi][yi][1]
+    #         ax.add_patch(
+    #             Rectangle(
+    #                 (xi*binsize, yi*binsize),
+    #                 binsize, binsize,
+    #                 fc=color_mapper((score, data['max']), ctype='IR'),
+    #                 fill=True,
+    #             )
+    #         )
+    #         endstring = '\n' if (xi==1000 and yi==1000) else '\r'
+    #         print('Creating plots: %04s/%s x, %04s/%s y'%(xi, bincount, yi, bincount), end=endstring)
 
     filename = './visualization/Score_map_per_role_%s_%s'%(event, role)
     if save: plt.savefig(filename)
     else: plt.show()
 
-def score_per_player(save=False, model='spa', match='None'):
+def score_per_player(save=False, model='spa', match='None', events=[]):
     print('Loading datas...')
     if match=='None':
         mlist = pd.read_feather(path+'match_result_test.ftr')
@@ -157,30 +262,40 @@ def score_per_player(save=False, model='spa', match='None'):
         'title': mode_title[idx]
     }
     tmp = pd.read_feather(data['path'])
-    data['data'] = tmp[tmp['match_id'] == match]
+    tmp = tmp[tmp['match_id'] == match]
 
-    match_tmp = data['data'][['player', 'score', 'time', 'win']].copy()
-    match_tmp.sort_values(by=['time'], inplace=True)
-
-    data['players'] = {'scores':[], 'events':[]}
+    players = []
     for player in range(10):
-        time = match_tmp[match_tmp['player']==player]['time'].tolist()
-        scores = match_tmp[match_tmp['player']==player]['score'].tolist()
-        isWin = match_tmp[match_tmp['player']==player]['win'].iloc[0]
+        isWin = tmp[tmp['player']==player]['win'].iloc[0]
+        players.append({'isWin':isWin})
+
+    if len(events) > 0:
+        for idx, event in enumerate(events):
+            if idx == 0: event_norm = (tmp[event]==1)
+            else: event_norm = event_norm | (tmp[event]==1)
+        tmp = tmp[event_norm]
+
+    tmp.sort_values(by='time', ignore_index=True, inplace=True)
+    for player in range(10):
+        player_tmp = tmp[tmp['player']==player]
+        time = player_tmp['time'].tolist()
+        scores = player_tmp['score'].tolist()
         scores = list(accumulate(scores))
-        data['players']['scores'].append({'time':time, 'scores':scores, 'isWin':isWin})
+        players[player]['time'] = time
+        players[player]['scores'] = scores
 
     print('Creating plots...')
     fig = plt.figure(figsize=(6, 6))
 
     colors = ['red', 'green', 'blue', 'brown', 'orange']
-    ax = fig.add_subplot(1, 1, 1, title='Score trainsition by time')
+    title = 'Score transition by time' + ('' if len(events) == 0 else f'\n{events}')
+    ax = fig.add_subplot(1, 1, 1, title=title)
 
     for player in range(10):
-        sx = data['players']['scores'][player]['time']
-        sy = data['players']['scores'][player]['scores']
-        isWin = data['players']['scores'][player]['isWin']
-        label = ('Winner' if isWin else 'Lost') + ' Team Player %i'%(player%5+1)
+        sx = players[player]['time']
+        sy = players[player]['scores']
+        isWin = players[player]['isWin']
+        label = 'Player %i'%(player + 1) + (' (Win)' if isWin else ' (Lost)')
         ax.plot(sx, sy, c=colors[player%5], ls='-' if isWin else ':', label=label, alpha=0.5)
 
         ax.legend()
@@ -237,7 +352,7 @@ def event_count_per_player(save=False, model='spa', events=['CHAMPION_KILL'], ma
 
     for player in range(10):
         isWin = data['players'][player]['isWin']
-        label = ('Winner' if isWin else 'Lost') + ' Team Player %i'%(player%5+1)
+        label = 'Player %i'%(player + 1) + (' (Win)' if isWin else ' (Lost)')
         ex = data['players'][player]['time']
         ey = data['players'][player]['counts']
         ax.plot(ex, ey, c=colors[player%5], ls='-' if isWin else ':', label=label, alpha=0.5)
@@ -245,6 +360,50 @@ def event_count_per_player(save=False, model='spa', events=['CHAMPION_KILL'], ma
     ax.legend()
     ax.set_xlabel('time')
     ax.set_ylabel('count')
+    
+    if save: plt.savefig('./visualization/score_transition_per_player.png')
+    else: plt.show()
+
+def score_of_player_per_event(save=False, model='spa', match='None', player=0):
+    idx = modes.index(model)
+    path = mpath[idx]
+
+    print('Loading datas...')
+    if match=='None':
+        mlist = pd.read_feather(path+'match_result_test.ftr')
+        mlist = mlist['match_no'].tolist()
+        match = random.sample(mlist, 1)[0]
+    print(match)
+
+    tmp = pd.read_feather(path)
+    tmp = tmp[(tmp['match_id'] == match) & (tmp['player']==player)]
+    tmp.sort_values(by='time', inplace=True, ignore_index=True)
+
+    events = {}
+    for event in elist:
+        event_tmp = tmp[tmp[event]==1]
+        time = event_tmp['time'].tolist()
+        scores = event_tmp['score'].tolist()
+        scores = list(accumulate(scores))
+
+        events[event] = (time, scores)
+
+    print('Creating plots...')
+    fig = plt.figure(figsize=(6, 6))
+
+    # colors = ['red', 'green', 'blue', 'brown', 'orange', 'pink']
+    title = f'Player {player+1}\'s score transition per event'
+    ax = fig.add_subplot(1, 1, 1, title=title)
+
+    for idx, event in enumerate(elist):
+        sx = events[event][0]
+        sy = events[event][1]
+        ls = '-' if idx < 10 else ':'
+        ax.plot(sx, sy, ls=ls, label=event, alpha=0.5)
+
+        ax.legend()
+        ax.set_xlabel('time')
+        ax.set_ylabel('scores')
     
     if save: plt.savefig('./visualization/score_transition_per_player.png')
     else: plt.show()
@@ -548,7 +707,6 @@ def score_factor_box(event='CHAMPION_KILL', save=False, factor='time', models=['
     
     print('Loading datas...')
     for model in models:
-        print(model)
         midx = modes.index(model)
         fpath = mpath[midx]
 
@@ -664,8 +822,6 @@ def score_factor_box_rnb(event='CHAMPION_KILL', location='JUNGLE', role='assassi
     for value in rangeValues:
         minvalue = 0.45 if value not in fix.keys() else fix[value][0]
         maxvalue = 0.55 if value not in fix.keys() else fix[value][1]
-        print('minvalue: ', minvalue)
-        print('maxvalue: ', maxvalue)
         criterion = criterion & (minvalue <= tmp[value]) & (tmp[value] <= maxvalue)
     tmp = tmp[criterion]
 
