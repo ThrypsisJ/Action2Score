@@ -9,7 +9,10 @@ import pandas as pd
 ############### File IO functions ###############
 #################################################
 def timeline_file_opener(file_name, server, train=True):
-    route = f"./mat_datas_train/{server}" if train else f"./mat_datas_test/{server}"
+    if server != None:
+        route = f"./mat_datas_train/{server}" if train else f"./mat_datas_test/{server}"
+    else:
+        route = '../../Dataset/League_of_Legends/challenger_raw'
 
     with open(f"{route}/{file_name}", encoding="utf-8") as loaded_file:
         json_file = json.load(loaded_file)
@@ -34,7 +37,7 @@ def item_dict_opener():
     return item_dict
 
 def champion_dict_opener():
-    file = f"./DataDragon/dragontail-11.10.1/11.10.1/data/ko_KR/championFull.json"
+    file = f"./DataDragon/11.21.1/data/ko_KR/championFull.json"
     champ_cat_csv = csv_opener("./processed_csvs/champs_dummy_variable.csv", "r", "utf-8")
     champ_cat_reader = csv.reader(champ_cat_csv)
     champ_cat_dic = {}

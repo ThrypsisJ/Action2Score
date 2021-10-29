@@ -1,119 +1,25 @@
-import pasta_spaghettini as dGRU
+import pasta_spaghettini as spa
+from tqdm import tqdm
 import pandas as pd
-from os.path import exists
-from time import sleep
 
-def test(predict_time=300000, limited_duration=False, proportional_time=False, no_time_feature=False, flipped=True):
-    hp = {"epochs": 1, "learning_rate": 0.01, "num_layers": 1, "hidden_size": 8, "input_size": 29 if no_time_feature else 30}
-    PASTA = dGRU.PASTA(hp["input_size"], hp["hidden_size"], hp["num_layers"], hp["learning_rate"])
+hp = {"epochs": 1, "learning_rate": 0.01, "num_layers": 1, "hidden_size": 8, "input_size": 30}
+PASTA = spa.PASTA(hp["input_size"], hp["hidden_size"], hp["num_layers"], hp["learning_rate"])
 
-    route = "../../Dataset/League_of_Legends/features_tensor/"
+route = "../../Dataset/League_of_Legends/features_tensor/challenger"
 
-    test_match_result_ftr = pd.read_feather("./processed_ftr/match_result_test.ftr")
-    total_rows = test_match_result_ftr.shape[0]
+test_match_result_ftr = pd.read_csv("./processed_csvs/challenger_result.csv")
+total_rows = test_match_result_ftr.shape[0]
 
-    if (not limited_duration) & (not no_time_feature) & (not flipped) & (not proportional_time):
-        PASTA.load_parameter(postifx="_spaghettini")
-        confusion_matrix, c_label = [0, 0, 0, 0], ["TN", "FP", "FN", "TP"]
+PASTA.load_parameter(postfix="_spaghettini")
+confusion_matrix, c_label = [0, 0, 0, 0], ["TN", "FP", "FN", "TP"]
 
-        print("--test start--")
-        for idx, row in test_match_result_ftr.iterrows():
-            print("[%6d/%6d] "%(idx+1, total_rows), end="")
-            match_id, win = row["match_no"], row["win"]
-            features = pd.read_pickle(f"{route}Normal_test/{match_id}.pkl")
-            winner, predict = PASTA.test(features, win, match_id, postfix="spaghettini_normal")
-            correct = 2*winner + predict
-            confusion_matrix[correct] += 1
+print("--test start--")
+for idx, row in tqdm(test_match_result_ftr.iterrows(), ncols=50, total=total_rows):
+    match_id, win = row["match_no"], row["win"]
+    features = pd.read_pickle(f"{route}/{match_id}.pkl")
+    winner, predict = PASTA.test(features, win, match_id, postfix="challenger")
+    correct = 2*winner + predict
+    confusion_matrix[correct] += 1
 
-            tn, fp, fn, tp = confusion_matrix[0], confusion_matrix[1], confusion_matrix[2], confusion_matrix[3]
-            acc = (tp+tn)/(tn+fp+fn+tp) * 100
-            pre = tp/(tp+fp) * 100 if (tp+fp) != 0 else 0
-            rec = tp/(tp+fn) * 100 if (tp+fn) != 0 else 0
-            print(" / Acc: %5.2f / Pre: %5.2f / Rec: %5.2f"%(acc, pre, rec))
-
-        for idx in range(0, 4):
-            print(f"{c_label[idx]}: {confusion_matrix[idx]} / ", end="")
-
-    elif (not limited_duration) & (not no_time_feature) & flipped & (not proportional_time):
-        PASTA.load_parameter(postfix="_spaghettini")
-        confusion_matrix, c_label = [0, 0, 0, 0], ["TN", "FP", "FN", "TP"]
-
-        print("--test start--")
-        for idx, row in test_match_result_ftr.iterrows():
-            print("[%6d/%6d] "%(idx+1, total_rows), end="")
-            match_id, win = row["match_no"], row["win"]
-            features = pd.read_pickle(f"{route}Flipped_Test/{match_id}.pkl")
-            winner, predict = PASTA.test(features, win, match_id, postfix="spaghettini")
-            correct = 2*winner + predict
-            confusion_matrix[correct] += 1
-
-            tn, fp, fn, tp = confusion_matrix[0], confusion_matrix[1], confusion_matrix[2], confusion_matrix[3]
-            acc = (tp+tn)/(tn+fp+fn+tp) * 100
-            pre = tp/(tp+fp) * 100 if (tp+fp) != 0 else 0
-            rec = tp/(tp+fn) * 100 if (tp+fn) != 0 else 0
-            print(" / Acc: %5.2f / Pre: %5.2f / Rec: %5.2f"%(acc, pre, rec))
-
-        for idx in range(0, 4):
-            print(f"{c_label[idx]}: {confusion_matrix[idx]} / ", end="")
-
-    elif limited_duration & (not no_time_feature) & flipped:
-        PASTA.load_parameter(postfix="_spaghettini")
-        confusion_matrix, c_label = [0, 0, 0, 0], ["TN", "FP", "FN", "TP"]
-
-        # time_range = (1800000, 2100000)
-
-        print("--test start--")
-        for idx, row in test_match_result_ftr.iterrows():
-            print("[%6d/%6d] "%(idx+1, total_rows), end="")
-            match_id, win, duration = row["match_no"], row["win"], row["duration"]
-            # if (duration < time_range[0]) or (duration > time_range[1]):
-            #     print("Match has skipped because the game duration is out of the range")
-            #     continue
-            if not exists(f"{route}Under{predict_time}_Flipped_Test/{match_id}.pkl"):
-            # elif not exists(f"{route}Under{predict_time}_Flipped_Test/{match_id}.pkl"):
-                print("Match has skipped because the match file doesn't exist")
-                continue
-            else:
-                features = pd.read_pickle(f"{route}Under{predict_time}_Flipped_Test/{match_id}.pkl")
-                winner, predict = PASTA.test(features, win, match_id, postfix=f"spaghettini_{predict_time}")
-                correct = 2*winner + predict
-                confusion_matrix[correct] += 1
-
-                tn, fp, fn, tp = confusion_matrix[0], confusion_matrix[1], confusion_matrix[2], confusion_matrix[3]
-                acc = (tp+tn)/(tn+fp+fn+tp) * 100
-                pre = tp/(tp+fp) * 100 if (tp+fp) != 0 else 0
-                rec = tp/(tp+fn) * 100 if (tp+fn) != 0 else 0
-                print(" / Acc: %5.2f / Pre: %5.2f / Rec: %5.2f"%(acc, pre, rec))
-
-        for idx in range(0, 4):
-            print(f"{c_label[idx]}: {confusion_matrix[idx]} / ", end="")
-        sleep(0.5)
-
-    elif proportional_time & (not no_time_feature) & flipped:
-        PASTA.load_parameter(postfix="_spaghettini")
-        confusion_matrix, c_label = [0, 0, 0, 0], ["TN", "FP", "FN", "TP"]
-
-        print("--test start--")
-        for idx, row in test_match_result_ftr.iterrows():
-            print("[%6d/%6d] "%(idx+1, total_rows), end="")
-            match_id, win = row["match_no"], row["win"]
-            if not exists(f"{route}Under{predict_time}_Flipped_Test/{match_id}.pkl"):
-                print("Match has skipped because the match file doesn't exist")
-                continue
-            else:
-                features = pd.read_pickle(f"{route}Under{predict_time}_Flipped_Test/{match_id}.pkl")
-                winner, predict = PASTA.test(features, win, match_id, postfix=f"spaghettini_{predict_time}")
-                correct = 2*winner + predict
-                confusion_matrix[correct] += 1
-
-                tn, fp, fn, tp = confusion_matrix[0], confusion_matrix[1], confusion_matrix[2], confusion_matrix[3]
-                acc = (tp+tn)/(tn+fp+fn+tp) * 100
-                pre = tp/(tp+fp) * 100 if (tp+fp) != 0 else 0
-                rec = tp/(tp+fn) * 100 if (tp+fn) != 0 else 0
-                print(" / Acc: %5.2f / Pre: %5.2f / Rec: %5.2f"%(acc, pre, rec))
-
-        for idx in range(0, 4):
-            print(f"{c_label[idx]}: {confusion_matrix[idx]} / ", end="")
-        sleep(0.5)
-
-    else: pass
+for idx in range(0, 4):
+    print(f"{c_label[idx]}: {confusion_matrix[idx]} / ", end="")

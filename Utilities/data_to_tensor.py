@@ -5,7 +5,7 @@ from tqdm import tqdm
 from time import sleep
 from torch import tensor, zeros
 
-pickle_route = "f:/Dataset/League_of_Legends/features_tensor/"
+pickle_route = "../../Dataset/League_of_Legends/features_tensor"
 
 #%%
 print("Processing normal train features...")

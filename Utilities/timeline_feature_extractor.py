@@ -67,8 +67,8 @@ class data_parser:
         self.timestamps = self.timestamps_creator(timeline_json)
 
         self.mat_data = self.mat_data_parser(mat_json)
-        # self.max_timestamp = float(list(self.timestamps.keys())[-1])
-        self.max_timestamp = 4000000
+        self.max_timestamp = float(list(self.timestamps.keys())[-1])
+        # self.max_timestamp = 4000000
         self.player_timelines = {}
         for idx in range(0, 10):
             self.player_timelines[str(idx+1)] = copy.deepcopy(self.timestamps)
