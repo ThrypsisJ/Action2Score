@@ -111,7 +111,32 @@ def save_feature(match_name, features, scores, file_name, winner):
                 save_features = [match_name, player] + temp_feature[0][event_idx] + [temp_score[0][event_idx][0], win]
                 writer.writerow(save_features)
     score_file.close()
-
+    
+def g3_save_features(match_name, features, scores, file_name, winner):
+    labels = [
+        "match_id", "player", "time", "mage", "fighter", "support", "tank", "assassin", "marksman", "TOP", "MIDDLE", "BOTTOM", "UTILITY", "JUNGLE", "x_position", "y_position",
+        "deviation", "ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "SKILL_LEVEL_UP", "LEVEL_UP", "WARD_PLACED", "WARD_KILL", "CHAMPION_KILL", "CHAMPION_KILL_ASSIST",
+        "CHAMPION_KILL_VICTIM", "BUILDING_KILL", "BUILDING_KILL_ASSIST", "ELITE_MONSTER_KILL", "ELITE_MONSTER_KILL_ASSIST", "event_weight", "score", "win"
+        ]
+    
+    data = pd.read_feather('../../Dataset/League_of_Legends/features_ftr_test/%s.ftr'%match_name)
+    data.sort_values(by='time', axis=0, ascending=False, inplace=True)
+    team_seq = []
+    team_seq.append(data[data['player']<=5]['player'].tolist())
+    team_seq.append(data[data['player']>=6]['player'].tolist())
+    
+    score_file = csv_opener(file_name, mode="a")
+    if score_file != None:
+        writer = csv.writer(score_file)
+        for team in range(2):
+            temp_feature = features[team][0].cpu().detach().numpy().tolist()
+            temp_score = scores[team][0].cpu().detach().numpy().tolist()
+            win = (team < 1 and winner=="blue") or (team >= 1 and winner=="red")
+            for player, event, score in zip(team_seq[team], temp_feature, temp_score):
+                save_features = [match_name, player] + event + [score[0], win]
+                writer.writerow(save_features)
+    
+    
 def feature_names(train=True):
     list = []
     postfix = "train" if train else "test"

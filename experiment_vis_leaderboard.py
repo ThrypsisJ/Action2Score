@@ -1,7 +1,8 @@
 import pandas as pd
 
-def load_leaderboard(match_id):
-    data = pd.read_csv(f'./processed_csvs/{match_id}_analyze.csv')
+def load_leaderboard(match_id, challenger=False):
+    if challenger   : data = pd.read_csv(f'./processed_csvs/challengers/{match_id}_analyze.csv')
+    else            : data = pd.read_csv(f'./processed_csvs/{match_id}_analyze.csv')
     index = [f'Rank {i+1}' for i in range(10)]
 
     leaderboard = {}
@@ -23,9 +24,14 @@ def load_leaderboard(match_id):
     leaderboard = pd.DataFrame(leaderboard, index=index)
     return leaderboard
 
-def load_leaderboard_graph(match_id):
-    data = pd.read_csv(f'./processed_csvs/{match_id}_analyze.csv')
-    result = pd.read_csv(f'./processed_csvs/match_result_test.csv')
+def load_leaderboard_graph(match_id, challenger=False):
+    if challenger:
+        data = pd.read_csv(f'./processed_csvs/challengers/{match_id}_analyze.csv')
+        result = pd.read_csv(f'processed_csvs/challenger_result.csv')
+    else:
+        data = pd.read_csv(f'./processed_csvs/{match_id}_analyze.csv')
+        result = pd.read_csv(f'./processed_csvs/match_result_test.csv')
+        
     result = result[result['match_no'] == match_id]['win'].item()
     
     isWin = []

@@ -2,8 +2,7 @@ import time
 import requests
 
 class match_req_sender():
-    def __init__(self, server):
-        self.api_key = "RGAPI-6db6a65a-8d5c-418f-b4ad-df3488d8bcaa"
+    def __init__(self, server, api_key):
         self.server = server
         self.url = f"https://{self.server}.api.riotgames.com/"
         self.req_header = {
@@ -11,7 +10,7 @@ class match_req_sender():
             "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
             "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
             "Origin": "https://developer.riotgames.com",
-            "X-Riot-Token": "RGAPI-6db6a65a-8d5c-418f-b4ad-df3488d8bcaa"
+            "X-Riot-Token": api_key
         }
         self.res_stats = {
             "NoData"    : 404,
