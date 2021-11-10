@@ -1,5 +1,10 @@
-/API/__pycache__/
-/.ipynb_checkpoints
+/processed_ftr
+/processed_csvs
+/parameters
+*__pycache__*
+*.ipynb_checkpoints*
+*visualization*
+*.vscode*
 /DataDragon/__pycache__
 /DataDragon/11.21.1
 /DataDragon/img
@@ -8,10 +13,3 @@
 /DataDragon/dragonhead.js
 /DataDragon/languages.js
 /DataDragon/languages.json
-/.vscode
-/visualization
-/Utilities/.ipynb_checkpoints
-/processed_ftr
-/processed_csvs
-/parameters
-/__pycache__

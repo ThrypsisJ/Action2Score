@@ -49,7 +49,7 @@ class PASTA():
             scores.append(score)
 
         blue_total, red_total = scores[0].sum(), scores[1].sum()
-        loss = self.garnish(blue_total, red_total, winner)
+        # loss = self.garnish(blue_total, red_total, winner)
 
         predict = "blue" if blue_total > red_total else "red"
 
@@ -65,9 +65,11 @@ class PASTA():
 
     ########## Utility Functions ##########
     def save_result_and_score(self, match_id, features, scores, prediction, winner):
-        file_io.save_prediction(match_id, prediction, f"./processed_ftr/result_predict_spa_g3.csv", winner)
-        file_io.g3_save_features(match_id, features, scores, f"./processed_ftr/scores_spa_g3.csv", winner)
-
+        # file_io.save_prediction(match_id, prediction, f"./processed_ftr/result_predict_spa_g3.csv", winner)
+        # file_io.g3_save_features(match_id, features, scores, f"./processed_ftr/scores_spa_g3.csv", winner)
+        file_io.save_prediction(match_id, prediction, f'./processed_ftr/challenger_g3.csv', winner)
+        file_io.g3_save_features(match_id, features, scores, f'./processed_ftr/challenger_g3_score.csv', winner)
+        
     def save_parameter(self, fname='./parameters/param_spa_g3'):
         torch.save(self.noodles[0].state_dict(), fname)
 

@@ -119,7 +119,8 @@ def g3_save_features(match_name, features, scores, file_name, winner):
         "CHAMPION_KILL_VICTIM", "BUILDING_KILL", "BUILDING_KILL_ASSIST", "ELITE_MONSTER_KILL", "ELITE_MONSTER_KILL_ASSIST", "event_weight", "score", "win"
         ]
     
-    data = pd.read_feather('../../Dataset/League_of_Legends/features_ftr_test/%s.ftr'%match_name)
+    # data = pd.read_feather('../../Dataset/League_of_Legends/features_ftr_test/%s.ftr'%match_name)
+    data = pd.read_csv('../../Dataset/League_of_Legends/challenger_csv/%s.csv'%match_name)
     data.sort_values(by='time', axis=0, ascending=False, inplace=True)
     team_seq = []
     team_seq.append(data[data['player']<=5]['player'].tolist())
@@ -135,7 +136,18 @@ def g3_save_features(match_name, features, scores, file_name, winner):
             for player, event, score in zip(team_seq[team], temp_feature, temp_score):
                 save_features = [match_name, player] + event + [score[0], win]
                 writer.writerow(save_features)
-    
+    else:
+        score_file = open(file_name, mode="w", encoding="utf-8")
+        writer = csv.writer(score_file)
+        writer.writerow(labels)
+        for team in range(2):
+            temp_feature = features[team][0].cpu().detach().numpy().tolist()
+            temp_score = scores[team][0].cpu().detach().numpy().tolist()
+            win = (team < 0 and winner=="blue") or (team >= 1 and winner=="red")
+            for player, event, score in zip(team_seq[team], temp_feature, temp_score):
+                save_features = [match_name, player] + event + [score[0], win]
+                writer.writerow(save_features)
+    score_file.close()
     
 def feature_names(train=True):
     list = []
