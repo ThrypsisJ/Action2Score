@@ -16,7 +16,7 @@ class PASTA():
         self.input_size = input_size
 
     ########## Train Function ##########
-    def train(self, features, winner):
+    def train(self, features, winner, bce=False):
         scores = []
         for idx in range(2):
             self.noodles[idx].train()
@@ -25,7 +25,7 @@ class PASTA():
             scores.append(score)
 
         blue_total, red_total = scores[0].sum(), scores[1].sum()
-        loss = self.garnish(blue_total, red_total, winner)
+        loss = self.garnish(blue_total, red_total, winner, bce)
         
         predict = "blue" if blue_total > red_total else "red"
 
@@ -58,9 +58,15 @@ class PASTA():
         return team[winner], team[predict]
 
     ########## The Garnish ##########
-    def garnish(self, blue_total, red_total, winner=None):
-        if winner == "blue": loss = nn.ReLU()(red_total - blue_total)
-        else: loss = nn.ReLU()(blue_total - red_total)
+    def garnish(self, blue_total, red_total, winner=None, bce=False):
+        if bce:
+            chance = blue_total / (blue_total + red_total)
+            target = torch.tensor(1.) if winner == 'blue' else torch.tensor(0.)
+            target = target.to('cuda')
+            loss = nn.BCELoss()(chance, target)
+        else:
+            if winner == "blue": loss = nn.ReLU()(red_total - blue_total)
+            else: loss = nn.ReLU()(blue_total - red_total)
         return loss
 
     ########## Utility Functions ##########
