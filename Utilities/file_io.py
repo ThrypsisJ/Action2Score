@@ -97,7 +97,7 @@ def save_feature(match_name, features, scores, file_name, winner):
             temp_score = scores[player].cpu().detach().numpy().tolist()
             win = (player < 5 and winner=="blue") or (player >= 5 and winner=="red")
             for event_idx in range(0, len(temp_feature[0])):
-                save_features = [match_name, player] + temp_feature[0][event_idx] + [temp_score[0][event_idx][0], win]
+                save_features = [match_name, (player+1)] + temp_feature[0][event_idx] + [temp_score[0][event_idx][0], win]
                 writer.writerow(save_features)
     else:
         score_file = open(file_name, mode="w", encoding="utf-8")
@@ -108,7 +108,7 @@ def save_feature(match_name, features, scores, file_name, winner):
             temp_score = scores[player].cpu().detach().numpy().tolist()
             win = (player < 5 and winner=="blue") or (player >= 5 and winner=="red")
             for event_idx in range(0, len(temp_feature[0])):
-                save_features = [match_name, player] + temp_feature[0][event_idx] + [temp_score[0][event_idx][0], win]
+                save_features = [match_name, (player+1)] + temp_feature[0][event_idx] + [temp_score[0][event_idx][0], win]
                 writer.writerow(save_features)
     score_file.close()
     
