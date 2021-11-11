@@ -2,13 +2,6 @@ import pandas as pd
 from os import listdir
 
 def concat(g3=False):
-    # match_id = '210510_eun1_2825546524'
-    # match_id = '210510_euw1_5253755356' # too many WARD_PLACED
-    # match_id = '210510_kr_5179842525'
-
-    # data = pd.read_feather(f'../processed_ftr/scores_spaghettini.ftr')
-    # data = data[data['match_id'] == match_id]
-
     path = './processed_csvs/challengers'
     score_path = './processed_ftr/challenger_g3_score.csv' if g3 else './processed_ftr/scores_challenger.csv'
 
