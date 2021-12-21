@@ -7,13 +7,14 @@ from sklearn.metrics import roc_curve, auc
 from itertools import accumulate
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib.colors import LinearSegmentedColormap
 import pandas as pd
 import random
 
 path = './processed_ftr/'
-modes = ('spa', 'g2', 'ch', 'las')
-mode_title = ['Spaghettini-ReLU', 'Spaghettini-BCE', 'Spaghettini-Chronological-ReLU', 'Lasagna-BCE']
-mpath = (path+'scores_spaghettini.ftr', path+'scores_spaghettini_g2_lr0001_2layer.ftr', path+'scores_spaghettini_nf_lr0001_2layer.ftr', path+'scores_lasagna_g2.ftr')
+modes = ('spa', 'g2', 'ch', 'las', 'challenger_spa')
+mode_title = ['Spaghettini-ReLU', 'Spaghettini-BCE', 'Spaghettini-Chronological-ReLU', 'Lasagna-BCE', 'Spaghettini-ReLU']
+mpath = (path+'scores_spaghettini.ftr', path+'scores_spaghettini_g2_lr0001_2layer.ftr', path+'scores_spaghettini_nf_lr0001_2layer.ftr', path+'scores_lasagna_g2.ftr', path+'scores_challenger.csv')
 
 teams = ('both', 'blue', 'red')
 
@@ -150,8 +151,14 @@ def match_score_timeline(save=False, models=['spa']):
 
 def color_mapper(score, isempty, maxscore, ctype='IR'):
     colors = []
+    cmap = {
+        'red': ((0.0, 1.0, 1.0), (1.0, 1.0, 1.0)),
+        'green': ((0.0, 1.0, 1.0), (1.0, 1.0, 1.0)),
+        'blue': ((0.0, 1.0, 1.0), (1.0, 1.0, 1.0))
+    }
     for i in range(len(score)):
-        if isempty[i]: r, g, b = 1.0, 1.0, 1.0
+        if isempty[i]:
+            r, g, b = 1.0, 1.0, 1.0
         elif ctype == 'IR':
             r = 2*(score[i]/maxscore)
             r = 1.0 if r > 1.0 else r
@@ -160,20 +167,29 @@ def color_mapper(score, isempty, maxscore, ctype='IR'):
             g = 1.0 if g > 1.0 else g
             b = 1.0 - 2*(score[i]/maxscore)
             b = 0.0 if b < 0.0 else b
+            cmap['red'] = ((0.0, 0.0, 0.0), (0.5, 1.0, 1.0), (1.0, 1.0, 1.0))
+            cmap['green'] = ((0.0, 0.0, 0.0), (0.5, 0.0, 0.0), (1.0, 1.0, 1.0))
+            cmap['blue'] = ((0.0, 1.0, 1.0), (0.5, 0.0, 0.0), (1.0, 0.0, 0.0))
         elif ctype == 'RG':
             r = score[i]/maxscore
             g = 1 - (score[i]/maxscore)
             b = 0.0
+            cmap['red'] = ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
+            cmap['green'] = ((0.0, 1.0, 1.0), (1.0, 0.0, 0.0))
+            cmap['blue'] = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         elif ctype == 'RB':
             r = score[i]/maxscore
             g = 0.0
             b = 1 - (score[i]/maxscore)
+            cmap['red'] = ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))
+            cmap['green'] = ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0))
+            cmap['blue'] = ((0.0, 1.0, 1.0), (1.0, 0.0, 0.0))
         else:
             r, g, b = 1.0, 1.0, 1.0
         colors.append((r, g, b))
-    return colors
+    return colors, cmap
 
-def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, role='JUNGLE', model='spa'):
+def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, model='spa'):
     print('Loading datas...')
     mlist = pd.read_feather(path+'match_result_test.ftr')
     mlist = mlist['match_no'].tolist()
@@ -190,10 +206,11 @@ def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, role='JUNGL
     minscore = tmp['score'].min()
     data['max'] = maxscore
     data['min'] = minscore
-    data['norm'] = colors.Normalize(vmin=minscore, vmax=maxscore)
-    data['data'] = tmp[tmp[role]==1][['x_position', 'y_position', 'score']]
+    # data['norm'] = colors.Normalize(vmin=minscore, vmax=maxscore)
+    data['data'] = tmp[['x_position', 'y_position', 'score']]
+    # data['data'] = tmp[tmp[role]==1][['x_position', 'y_position', 'score']]
 
-    binsize = 0.004
+    binsize = 0.005
     bincount = int(1/binsize)
     slices = []
     # slicex, slicey, slicescore = [], [], []
@@ -215,35 +232,24 @@ def score_by_position(save=False, event='CHAMPION_KILL', isWin=True, role='JUNGL
             endstring = '\n' if (xi==(bincount-1) and yi==(bincount-1)) else '\r'
             print('Slicing datas: %04s/%s x, %04s/%s y'%(xi, bincount, yi, bincount), end=endstring)
 
-    fig = plt.figure(figsize=(11, 11))
-    ax = fig.add_subplot(title=f'{event}-{role}')
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(0.0, 1.0)
-    ax.set(xlabel='x-position', ylabel='y-position')
+    plt.figure(figsize=(9, 7))
+    plt.xlim(0.0, 1.0)
+    plt.ylim(0.0, 1.0)
+    plt.xlabel('x position')
+    plt.ylabel('y position')
 
     slices = pd.DataFrame(slices)
     x, y, score, isempty = slices['x'].tolist(), slices['y'].tolist(), slices['s'].tolist(), slices['isempty'].tolist()
-    ax.scatter(x, y, s=4, c=color_mapper(score, isempty, maxscore, ctype='RG'), marker='s')
 
-    # tcbar = fig.colorbar(cm.ScalarMappable(cmap=cm.cool), ax=ax, ticks=[0, 1], location='left')
-    # tcbar.ax.set_yticklabels(['%6.3f'%data['min'], '%6.3f'%data['max']])
+    colors, cmap = color_mapper(score, isempty, maxscore, ctype='IR')
+    plt.scatter(x, y, s=4, c=colors)
 
-    # for xi in range(bincount):
-    #     for yi in range(bincount):
-    #         score = slices[xi][yi][0]
-    #         count = slices[xi][yi][1]
-    #         ax.add_patch(
-    #             Rectangle(
-    #                 (xi*binsize, yi*binsize),
-    #                 binsize, binsize,
-    #                 fc=color_mapper((score, data['max']), ctype='IR'),
-    #                 fill=True,
-    #             )
-    #         )
-    #         endstring = '\n' if (xi==1000 and yi==1000) else '\r'
-    #         print('Creating plots: %04s/%s x, %04s/%s y'%(xi, bincount, yi, bincount), end=endstring)
+    cmap = LinearSegmentedColormap('IR', cmap)
+    cbar = plt.colorbar(cm.ScalarMappable(cmap=cmap), ticks=[0, 1])
+    cbar.set_label(label='score', labelpad=-20)
+    cbar.set_ticklabels(['%5.2f'%min(score), '%5.2f'%max(score)])
 
-    filename = './visualization/Score_map_per_role_%s_%s'%(event, role)
+    filename = './visualization/Score_map_per_%s'%(event)
     if save: plt.savefig(filename)
     else: plt.show()
 
@@ -261,11 +267,12 @@ def score_per_player(save=False, model='spa', match='None', events=[]):
         'path': mpath[idx],
         'title': mode_title[idx]
     }
-    tmp = pd.read_feather(data['path'])
+    tmp = pd.read_feather(data['path']) if data['idx'] != 4 else pd.read_csv(data['path'])
     tmp = tmp[tmp['match_id'] == match]
 
     players = []
     for player in range(10):
+        if model=='challenger_spa': player += 1
         isWin = tmp[tmp['player']==player]['win'].iloc[0]
         players.append({'isWin':isWin})
 
@@ -277,10 +284,13 @@ def score_per_player(save=False, model='spa', match='None', events=[]):
 
     tmp.sort_values(by='time', ignore_index=True, inplace=True)
     for player in range(10):
+        if model=='challenger_spa': player += 1
         player_tmp = tmp[tmp['player']==player]
         time = player_tmp['time'].tolist()
         scores = player_tmp['score'].tolist()
         scores = list(accumulate(scores))
+
+        if model=='challenger_spa': player -= 1
         players[player]['time'] = time
         players[player]['scores'] = scores
 
@@ -319,7 +329,7 @@ def event_count_per_player(save=False, model='spa', events=['CHAMPION_KILL'], ma
         'path': mpath[idx],
         'title': mode_title[idx]
     }
-    tmp = pd.read_feather(data['path'])
+    tmp = pd.read_feather(data['path']) if idx != 4 else pd.read_csv(data['path'])
     norm = tmp['match_id'] == match
     data['data'] = tmp[norm]
 
@@ -329,14 +339,14 @@ def event_count_per_player(save=False, model='spa', events=['CHAMPION_KILL'], ma
 
     data['players'] = []
     for player in range(10):
-        isWin = data['data'][data['data']['player']==player]['win'].iloc[0]
+        isWin = data['data'][data['data']['player']==player+1]['win'].iloc[0]
         data['players'].append({'isWin':isWin})
 
     etmp = data['data'][norm][['player', 'time', 'win']].copy()
     etmp.sort_values(by=['time'], inplace=True)
 
     for player in range(10):
-        count = etmp[etmp['player']==player]['time']
+        count = etmp[etmp['player']==player+1]['time']
         time = count.tolist()
         
         count = [1 for _ in range(len(count))]
@@ -697,56 +707,53 @@ def drawbox(xdatas, color, bias, fcluster):
                 flierprops=dict(color=color, markeredgecolor=color, alpha=0.1),
                 medianprops=dict(color=(0,1,1)))
 
-def score_factor_box(event='CHAMPION_KILL', save=False, factor='time', models=['spa'], sample=60000):
+def score_factor_box(event='CHAMPION_KILL', save=False, factor='time', model='spa', sample=60000):
     data = {}
 
     specials = ['ELITE_MONSTER_KILL', 'ELITE_MONSTER_KILL_ASSIST', 'BUILDING_KILL', 'BUILDING_KILL_ASSIST', 'SKILL_LEVEL_UP']
-    tslice = 0.05 if (event not in specials) or (factor != 'event_weight') else 0.2
+    tslice = 0.1 if (event not in specials) or (factor != 'event_weight') else 0.2
     tcluster = int(1/tslice)
     tsample = int(sample/tcluster)
     
     print('Loading datas...')
-    for model in models:
-        midx = modes.index(model)
-        fpath = mpath[midx]
 
-        tmp = pd.read_feather(fpath)
-        tmp = tmp[tmp[event]==1][['win', factor, 'score']]
-        data[model] = {'midx': midx, 'win': [], 'lose': []}
+    midx = modes.index(model)
+    fpath = mpath[midx]
 
-        for i in range(tcluster):
-            tmin, tmax = tslice * i, tslice * (i+1)
+    tmp = pd.read_feather(fpath)
+    tmp = tmp[tmp[event]==1][['win', factor, 'score']]
+    data[model] = {'midx': midx, 'win': [], 'lose': []}
 
-            tchunk = tmp[(tmp[factor]>=tmin) & (tmp[factor]<tmax)]
-            tmp_chunk = tchunk[tchunk['win']==True]['score']
-            if tmp_chunk.shape[0] == 0: data[model]['win'].append([])
-            elif tmp_chunk.shape[0] >= tsample: data[model]['win'].append(tmp_chunk.sample(tsample).tolist())
-            else: data[model]['win'].append(tmp_chunk.sample(tmp_chunk.shape[0]).tolist())
+    for i in range(tcluster):
+        tmin, tmax = tslice * i, tslice * (i+1)
 
-            tmp_chunk = tchunk[tchunk['win']==False]['score']
-            if tmp_chunk.shape[0] == 0: data[model]['lose'].append([])
-            elif tmp_chunk.shape[0] >= tsample: data[model]['lose'].append(tmp_chunk.sample(tsample).tolist())
-            else: data[model]['lose'].append(tmp_chunk.sample(tmp_chunk.shape[0]).tolist())
+        tchunk = tmp[(tmp[factor]>=tmin) & (tmp[factor]<tmax)]
+        tmp_chunk = tchunk[tchunk['win']==True]['score']
+        if tmp_chunk.shape[0] == 0: data[model]['win'].append([])
+        elif tmp_chunk.shape[0] >= tsample: data[model]['win'].append(tmp_chunk.sample(tsample).tolist())
+        else: data[model]['win'].append(tmp_chunk.sample(tmp_chunk.shape[0]).tolist())
+
+        tmp_chunk = tchunk[tchunk['win']==False]['score']
+        if tmp_chunk.shape[0] == 0: data[model]['lose'].append([])
+        elif tmp_chunk.shape[0] >= tsample: data[model]['lose'].append(tmp_chunk.sample(tsample).tolist())
+        else: data[model]['lose'].append(tmp_chunk.sample(tmp_chunk.shape[0]).tolist())
 
     print('Creating figure...')
-    fig = plt.figure(figsize=(7, 7*len(models)))
+    plt.figure(figsize=(7, 7))
 
-    for idx, model in enumerate(models):
-        sub = fig.add_subplot(len(models), 1, (idx+1))
+    drawbox(data[model]['win'], 'blue', 0, tcluster)
+    drawbox(data[model]['lose'], 'red', 0.5, tcluster)
+    plt.xticks([i for i in range(tcluster)], ['%3.2f'%(tslice*i) for i in range(tcluster)])
+    plt.xlabel(factor)
+    plt.ylabel('score')
 
-        drawbox(sub, data[model]['win'], 'blue', 0, tcluster)
-        drawbox(sub, data[model]['lose'], 'red', 0.5, tcluster)
+    legend_elements = [Patch(facecolor='blue', alpha=0.3, edgecolor='b', label='Winner Team'),
+                        Patch(facecolor='red', alpha=0.3, edgecolor='r', label='Lost Team')]
 
-        sub.set_xticks([i for i in range(tcluster)])
-        sub.set_xticklabels('%3.2f'%(tslice*i) for i in range(tcluster))
-        sub.set(xlabel=factor, ylabel='score')
-
-        legend_elements = [Patch(facecolor='blue', alpha=0.3, edgecolor='b', label='Winner Team'),
-                            Patch(facecolor='red', alpha=0.3, edgecolor='r', label='Lost Team')]
-        sub.legend(handles=legend_elements, loc='upper right')
+    plt.legend(handles=legend_elements, loc='upper right')
 
     if save:
-        plt.savefig(f'./visualization/Box-{event}-{factor}-{models}.png')
+        plt.savefig(f'./visualization/Box-{event}-{factor}-{model}.png')
         print('Figure saved')
     else: plt.show()
 
