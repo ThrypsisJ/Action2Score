@@ -5,11 +5,6 @@
 *.ipynb_checkpoints*
 *visualization*
 *.vscode*
-/DataDragon/__pycache__
-/DataDragon/11.21.1
-/DataDragon/img
-/DataDragon/lolpatch_11.21
-/DataDragon/._dragontail-11.21.1.tgz
-/DataDragon/dragonhead.js
-/DataDragon/languages.js
-/DataDragon/languages.json
+DataDragon/11.9.1
+DataDragon/11.10.1
+Dataset

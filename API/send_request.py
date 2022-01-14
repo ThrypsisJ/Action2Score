@@ -18,60 +18,65 @@ class match_req_sender():
             "Forbidden" : 403
         }
 
-    def req_wait(self, interval):
-        print("Wait for ", end="")
-        for i in range(0, interval):
-            print(f"{interval-i}...", end="")
-            time.sleep(1)
-        print("")
+    def req_user_sumids(self, league, division, page):
+        api_league = self.url + f'lol/league/v4/entries/RANKED_SOLO_5x5/{league}/{division}?page={page+1}'
+
+        res_league = requests.get(api_league, headers=self.req_header)
+        while True:
+            status = self.error_msg(res_league.status_code)
+            if status == 'Return': return None
+            if status == 'Proceed': break
+            time.sleep(1.2)
+            res_league = requests.get(api_league, headers=self.req_header)
+            
+        print(f'Got summoner\'s ID list on {league}-{division} page {page+1}')
+        time.sleep(1.2)
+        return res_league
 
     def req_match(self, match_id):
         api_match = self.url + f"lol/match/v5/matches/{match_id}"
+
         res_match = requests.get(api_match, headers=self.req_header)
-
-        status_code = res_match.status_code
-
-        if status_code == self.res_stats["NoData"]:
-            print(f"No data with match id = {match_id}")
-            time.sleep(1)
-            return None
-
-        if status_code == self.res_stats["Forbidden"]:
-            print(f"Unauthorized access!")
-            time.sleep(1)
-            return None
-
-        while status_code in self.res_stats["Retry"]:
-            print(f"Retry match id = {match_id}")
-            time.sleep(1)
+        while True:
+            status = self.error_msg(res_match.status_code)
+            if status == 'Return': return None
+            if status == 'Proceed': break
+            time.sleep(1.2)
             res_match = requests.get(api_match, headers=self.req_header)
-            status_code = res_match.status_code
 
         print(f"Got match data with match id={match_id} successfuly.")
-        time.sleep(1)
+        time.sleep(1.2)
         return res_match
 
     def req_timeline(self, match_id):
         api_timeline = self.url + f"lol/match/v5/matches/{match_id}/timeline"
+
         res_timeline = requests.get(api_timeline, headers=self.req_header)
-
-        status_code = res_timeline.status_code
-        if status_code == self.res_stats["NoData"]:
-            print(f"No data with match id = {match_id}")
-            time.sleep(1)
-            return None
-
-        if status_code == self.res_stats["Forbidden"]:
-            print(f"Unauthorized access!")
-            time.sleep(1)
-            return None
-
-        while status_code in self.res_stats["Retry"]:
-            print(f"Retry timeline of match id = {match_id}")
-            time.sleep(1)
+        while True:
+            status = self.error_msg(res_timeline.status_code)
+            if status == 'Return': return None
+            if status == 'Proceed': break
+            time.sleep(1.2)
             res_timeline = requests.get(api_timeline, headers=self.req_header)
-            status_code = res_timeline.status_code
         
         print(f"Got timeline data with match id={match_id} successfuly.")
-        time.sleep(1)
+        time.sleep(1.2)
         return res_timeline
+
+    def error_msg(self, response):
+        if response == self.res_stats['NoData']:
+            print('There was no data')
+            time.sleep(1.2)
+            return 'Return'
+
+        if response == self.res_stats['Forbidden']:
+            print('Unauthorized access!')
+            time.sleep(1.2)
+            return 'Return'
+
+        if response in self.res_stats['Retry']:
+            print('Resend request')
+            time.sleep(1.2)
+            return 'Retry'
+
+        return 'Proceed' # No error
