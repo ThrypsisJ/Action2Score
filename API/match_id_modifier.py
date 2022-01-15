@@ -3,7 +3,7 @@ import json
 import os
 from tqdm import tqdm
 
-path = "F:/Dataset/League_of_Legends/matchlists/"
+path = "../Dataset/matchlists/"
 
 for file in tqdm(os.listdir(path), desc="progress", ncols=80):
     region = file[10:-5].upper()

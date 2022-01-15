@@ -18,8 +18,11 @@ class match_req_sender():
             "Forbidden" : 403
         }
 
-    def req_user_sumids(self, league, division, page):
-        api_league = self.url + f'lol/league/v4/entries/RANKED_SOLO_5x5/{league}/{division}?page={page+1}'
+    def req_user_sumids(self, **kwargs):
+        over_dia = kwargs['league'] not in ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'IRON']
+
+        if over_dia: api_league = self.url + f'lol/league/v4/{kwargs["league"]}leagues/by-queue/RANKED_SOLO_5x5'
+        else        : api_league = self.url + f'lol/league/v4/entries/RANKED_SOLO_5x5/{kwargs["league"]}/{kwargs["division"]}?page={kwargs["page"]+1}'
 
         res_league = requests.get(api_league, headers=self.req_header)
         while True:
@@ -28,10 +31,26 @@ class match_req_sender():
             if status == 'Proceed': break
             time.sleep(1.2)
             res_league = requests.get(api_league, headers=self.req_header)
-            
-        print(f'Got summoner\'s ID list on {league}-{division} page {page+1}')
+        
+        if over_dia: print(f'Got summoner\'s ID list on {kwargs["league"]} league')
+        else        : print(f'Got summoner\'s ID list on {kwargs["league"]}-{kwargs["division"]} page {kwargs["page"]+1}')
         time.sleep(1.2)
         return res_league
+
+    def req_puuids(self, somm_id):
+        api_summ = self.url + f'lol/summoner/v4/summoners/{somm_id}'
+        res_summ = requests.get(api_summ, headers=self.req_header)
+
+        while True:
+            status = self.error_msg(res_summ.status_code)
+            if status == 'Return': return None
+            if status == 'Proceed': break
+            time.sleep(1.2)
+            res_summ = requests.get(api_summ, headers=self.req_header)
+        
+        print(f'Got puuid of summoner id {{{somm_id}}}')
+        time.sleep(1.2)
+        return res_summ
 
     def req_match(self, match_id):
         api_match = self.url + f"lol/match/v5/matches/{match_id}"
