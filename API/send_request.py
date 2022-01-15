@@ -53,7 +53,7 @@ class match_req_sender():
         return res_summ
 
     def match_list_from_puuid(self, puuid):
-        api_mat_list = self.url + f'lol/match/v5/matches/by-puuid/{puuid}'
+        api_mat_list = self.url + f'lol/match/v5/matches/by-puuid/{puuid}/ids'
         res_mat_list = requests.get(api_mat_list, headers=self.req_header)
 
         while True:

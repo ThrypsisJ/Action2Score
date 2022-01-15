@@ -31,7 +31,7 @@ if __name__ == '__main__':
         writer = csv.writer(file)
 
         for idx, row in enumerate(reader):
-            response = sender.req_puuids(row[0])
+            response = sender.match_list_from_puuid(row[0])
             if response == None: continue
             response = response.json()
             for match in response:

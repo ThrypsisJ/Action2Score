@@ -18,7 +18,7 @@ def champion_structure():
     return c_data_structure
 
 def file_opener(data_type, version):
-    path = f"./{version}/{version}/data/ko_KR"
+    path = f"./{version}/data/ko_KR"
 
     with open(f"{path}/{data_type}.json", encoding="utf-8") as loaded_file:
         json_file = json.load(loaded_file)
@@ -35,25 +35,25 @@ def item_to_csv(items, version):
     
     pd_data = pd.DataFrame(item_datas)
     pd_data = pd_data.sort_values(by=["id"])
-    pd_data.to_csv("../processed_csvs/items.csv", index=False) #, encoding="cp949")
+    pd_data.to_csv(f'./{version}/items.csv', index=False) #, encoding="cp949")
 
-def champ_to_csv(champs):
+def champ_to_csv(champs, version):
     champ_datas = champion_structure()
 
     for champ_name in champs.keys():
         champ = champs[champ_name]
 
-        champ_datas["name"].append(champ_name)
-        for key in keys:
-            champ_datas[key].append(champ[key])
+        champ_datas['name'].append(champ_name)
+        champ_datas['key'].append(champ['key'])
+        champ_datas['tags'].append(champ['tags'])
     
     pd_data = pd.DataFrame(champ_datas)
     pd_data = pd_data.sort_values(by=["key"])
-    pd_data.to_csv("../processed_csvs/champs.csv", index=False, encoding="utf-8")
+    pd_data.to_csv(f'./{version}/champs.csv', index=False) #, encoding="utf-8")
 
-def champ_to_dummy():
+def champ_to_dummy(version):
     dummies = ['Mage', 'Fighter', 'Support', 'Tank', 'Assassin', 'Marksman']
-    champs = pd.read_csv('../processed_csvs/champs.csv')
+    champs = pd.read_csv(f'./{version}/champs.csv')
     tags = champs['tags'].tolist()
 
     cham_dummies = {}
@@ -71,4 +71,4 @@ def champ_to_dummy():
     champs.drop(columns=['tags'], inplace=True)
     champs = pd.concat([champs, cham_dummies], axis=1)
 
-    champs.to_csv('../processed_csvs/champs_dummy_variable.csv', index=False)
+    champs.to_csv(f'./{version}/champs_dummy_variable.csv', index=False)

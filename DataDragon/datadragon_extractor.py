@@ -1,8 +1,11 @@
 import datadragon_data_manipulator as ddm
+import sys
 
-items = ddm.file_opener("item")
-champions = ddm.file_opener("champion")
+version = sys.argv[1]
 
-ddm.item_to_csv(items)
-ddm.champ_to_csv(champions)
-ddm.champ_to_dummy()
+items = ddm.file_opener('item', version)
+champions = ddm.file_opener('champion', version)
+
+ddm.item_to_csv(items, version)
+ddm.champ_to_csv(champions, version)
+ddm.champ_to_dummy(version)
