@@ -77,8 +77,6 @@ class match_req_sender():
             if status == 'Proceed': break
             time.sleep(1.2)
             res_match = requests.get(api_match, headers=self.req_header)
-
-        print(f"Got match data with match id={match_id} successfuly.")
         time.sleep(1.2)
         return res_match
 
@@ -92,8 +90,6 @@ class match_req_sender():
             if status == 'Proceed': break
             time.sleep(1.2)
             res_timeline = requests.get(api_timeline, headers=self.req_header)
-        
-        print(f"Got timeline data with match id={match_id} successfuly.")
         time.sleep(1.2)
         return res_timeline
 
