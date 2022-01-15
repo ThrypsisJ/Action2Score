@@ -17,40 +17,30 @@ def champion_structure():
     }
     return c_data_structure
 
-def file_opener(data_type):
-    route = "./11.21.1/data/ko_KR"
+def file_opener(data_type, version):
+    path = f"./{version}/{version}/data/ko_KR"
 
-    with open(f"{route}/{data_type}.json", encoding="utf-8") as loaded_file:
+    with open(f"{path}/{data_type}.json", encoding="utf-8") as loaded_file:
         json_file = json.load(loaded_file)
     return json_file["data"]
 
-def item_to_csv(items):
+def item_to_csv(items, version):
     item_datas = item_structure()
-    keys = list(item_datas.keys())
-    keys.remove("id")
 
-    for item_id in items:
+    for item_id in items.keys():
         item = items[item_id]
-
-        item_datas["id"].append(item_id)
-        for key in keys:
-            if key == "gold_purchase":
-                item_datas[key].append(item["gold"]["base"])
-            elif key == "gold_sell":
-                item_datas[key].append(item["gold"]["sell"])
-            else:
-                item_datas[key].append(item[key])
+        item_datas['id'].append(item_id)
+        item_datas['gold_purchase'].append(item['gold']['base'])
+        item_datas['gold_sell'].append(item['gold']['sell'])
     
     pd_data = pd.DataFrame(item_datas)
     pd_data = pd_data.sort_values(by=["id"])
-    pd_data.to_csv("../processed_csvs/items.csv", index=False, encoding="cp949")
+    pd_data.to_csv("../processed_csvs/items.csv", index=False) #, encoding="cp949")
 
 def champ_to_csv(champs):
     champ_datas = champion_structure()
-    keys = list(champ_datas.keys())
-    keys.remove("name")
 
-    for champ_name in champs:
+    for champ_name in champs.keys():
         champ = champs[champ_name]
 
         champ_datas["name"].append(champ_name)

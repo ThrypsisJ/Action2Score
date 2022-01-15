@@ -9,26 +9,23 @@ if __name__ == '__main__':
     server = str(sys.argv[1])
     api_key = str(sys.argv[2])
 
-    summ_ids_path = f'../Dataset/summoner_ids/{server}/'
-    path = f'../Dataset/puuids/'
+    puuid_path = f'../Dataset/puuids/{server}/'
+    path = f'../Dataset/match_list/'
     if not exists(path): makedirs(path)
 
-    if server in ['kr', 'jp1']          : reg_server = 'asia'
-    if server in ['na1', 'la1', 'la2']  : reg_server = 'america'
-    if server in ['eun1', 'euw1']       : reg_server = 'europe'
-    path = f'{path}{reg_server}/'
+    path = f'{path}{server}/'
     if not exists(path): makedirs(path)
 
     sender = send_request.match_req_sender(server, api_key)
 
-    for summ_f in listdir(summ_ids_path):
-        fname = path + summ_f
-        summ_f = summ_ids_path + summ_f
+    for puuid_f in listdir(puuid_path):
+        fname = path + puuid_f
+        puuid_f = puuid_path + puuid_f
         if exists(fname): continue
         if exists(f'{fname[:-4]}_tmp.csv'): remove(f'{fname[:-4]}_tmp.csv')
 
-        summ_file = open(summ_f, 'r', encoding='utf-8', newline='')
-        reader = csv.reader(summ_file)
+        puuid_file = open(puuid_f, 'r', encoding='utf-8', newline='')
+        reader = csv.reader(puuid_file)
 
         file = open(f'{fname[:-4]}_tmp.csv', 'w', encoding="utf-8", newline='')
         writer = csv.writer(file)
@@ -37,7 +34,8 @@ if __name__ == '__main__':
             response = sender.req_puuids(row[0])
             if response == None: continue
             response = response.json()
-            writer.writerow([response['puuid']])
+            for match in response:
+                writer.writerow([match])
             if idx >= 1000: break
 
         file.close()

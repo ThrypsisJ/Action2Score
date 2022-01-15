@@ -52,6 +52,21 @@ class match_req_sender():
         time.sleep(1.2)
         return res_summ
 
+    def match_list_from_puuid(self, puuid):
+        api_mat_list = self.url + f'lol/match/v5/matches/by-puuid/{puuid}'
+        res_mat_list = requests.get(api_mat_list, headers=self.req_header)
+
+        while True:
+            status = self.error_msg(res_mat_list.status_code)
+            if status == 'Return': return None
+            if status == 'Proceed': break
+            time.sleep(1.2)
+            res_mat_list = requests.get(api_mat_list, headers=self.req_header)
+
+        print(f'Got match list of puuid {{{puuid}}}')
+        time.sleep(1.2)
+        return res_mat_list
+
     def req_match(self, match_id):
         api_match = self.url + f"lol/match/v5/matches/{match_id}"
 
