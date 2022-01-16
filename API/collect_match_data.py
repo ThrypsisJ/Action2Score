@@ -1,7 +1,6 @@
-import os, sys, json, csv
+import os, sys, json
 import send_request
 import pandas as pd
-from datetime import datetime
 from tqdm import tqdm
 
 # get parameter
@@ -23,13 +22,15 @@ for league in os.listdir(path):
     league_path = f'{save_path}{league[:-4]}/'
     if not os.path.exists(league_path): os.makedirs(league_path)
 
-    mat_list = pd.read_csv(f'{path}{league}').iloc[:, 0].to_list()
-    mat_list = list(set(mat_list)).sort() # remove duplicates
+    mat_list = pd.read_csv(f'{path}{league}', header=None, names=['match'])['match'].to_list()
+    mat_list = list(set(mat_list)) # remove duplicates
     for match_id in tqdm(mat_list, ncols=80, leave=False):
-        mat_file = f'{league_path}{league[:-4]}/{match_id}.json'
-        tm_file = f'{league_path}{league[:-4]}/{match_id}_timeline.json'
+        mat_file = f'{league_path}/{match_id}.json'
+        tm_file = f'{league_path}/{match_id}_timeline.json'
 
-        if os.exists(mat_file): continue
+        if os.path.exists(mat_file):
+            if os.path.exists(tm_file): continue
+            else: os.remove(mat_file)
 
         res_match = sender.req_match(match_id)
         tm_match = sender.req_timeline(match_id)

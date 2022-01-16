@@ -75,9 +75,9 @@ class match_req_sender():
             status = self.error_msg(res_match.status_code)
             if status == 'Return': return None
             if status == 'Proceed': break
-            time.sleep(1.2)
+            time.sleep(1.1)
             res_match = requests.get(api_match, headers=self.req_header)
-        time.sleep(1.2)
+        time.sleep(1.1)
         return res_match
 
     def req_timeline(self, match_id):
@@ -88,9 +88,9 @@ class match_req_sender():
             status = self.error_msg(res_timeline.status_code)
             if status == 'Return': return None
             if status == 'Proceed': break
-            time.sleep(1.2)
+            time.sleep(1.1)
             res_timeline = requests.get(api_timeline, headers=self.req_header)
-        time.sleep(1.2)
+        time.sleep(1.1)
         return res_timeline
 
     def error_msg(self, response):
