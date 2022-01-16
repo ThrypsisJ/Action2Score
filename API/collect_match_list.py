@@ -1,8 +1,8 @@
-import sys
+import sys, csv
 import send_request
-import csv
 from os import makedirs, remove, listdir
 from os.path import exists
+from random import shuffle
 from shutil import move
 
 if __name__ == '__main__':
@@ -30,13 +30,18 @@ if __name__ == '__main__':
         file = open(f'{fname[:-4]}_tmp.csv', 'w', encoding="utf-8", newline='')
         writer = csv.writer(file)
 
-        for idx, row in enumerate(reader):
-            response = sender.match_list_from_puuid(row[0])
+        puuids = []
+        for row in enumerate(reader): puuids.append(row[0])
+        shuffle(puuids)
+
+        for idx, puuid in enumerate(puuids):
+            if idx == 1000: break
+
+            print(f'[{puuid_f[:-4]} - {idx+1}/1000] ', end='')
+            response = sender.match_list_from_puuid(puuid)
             if response == None: continue
-            response = response.json()
-            for match in response:
-                writer.writerow([match])
-            if idx >= 1000: break
+            response = response.join()
+            for match in response: writer.writerow([match])
 
         file.close()
         move(f'{fname[:-4]}_tmp.csv', f'{fname}')
