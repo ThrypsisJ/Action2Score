@@ -38,7 +38,7 @@ if __name__ == '__main__':
             if response == None: continue
             response = response.json()
             writer.writerow([response['puuid']])
-            if idx >= 1000: break
+            if idx+1 >= 500: break
 
         file.close()
         move(f'{fname[:-4]}_tmp.csv', f'{fname}')
