@@ -14,7 +14,7 @@ if __name__ == '__main__':
     if not exists(path): makedirs(path)
 
     if server in ['kr', 'jp1']          : reg_server = 'asia'
-    if server in ['na1', 'la1', 'la2']  : reg_server = 'america'
+    if server in ['na1', 'la1', 'la2']  : reg_server = 'americas'
     if server in ['eun1', 'euw1']       : reg_server = 'europe'
     path = f'{path}{reg_server}/'
     if not exists(path): makedirs(path)
