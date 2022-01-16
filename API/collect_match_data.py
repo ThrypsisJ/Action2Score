@@ -24,12 +24,16 @@ for league in os.listdir(path):
 
     mat_list = pd.read_csv(f'{path}{league}', header=None, names=['match'])['match'].to_list()
     mat_list = list(set(mat_list)) # remove duplicates
-    for match_id in tqdm(mat_list, ncols=80, leave=False):
+
+    for idx, match_id in enumerate(mat_list):
+        if idx == 3000: break
         mat_file = f'{league_path}/{match_id}.json'
         tm_file = f'{league_path}/{match_id}_timeline.json'
 
         if os.path.exists(mat_file):
-            if os.path.exists(tm_file): continue
+            if os.path.exists(tm_file):
+                print(f'[{idx+1:04d}/3000] {match_id} data already exists.')
+                continue
             else: os.remove(mat_file)
 
         res_match = sender.req_match(match_id)
@@ -44,3 +48,5 @@ for league in os.listdir(path):
 
         with open(tm_file, 'w') as file:
             json.dump(tm_match, file, indent=4)
+
+        print(f'[{idx+1:04d}/3000] {match_id} data has downloaded.')
