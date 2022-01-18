@@ -1,13 +1,6 @@
 import pandas as pd
 import sys, json
-
-def champion_structure():
-    c_data_structure = {
-        "name": [],
-        "key": [],
-        "tags": [],
-    }
-    return c_data_structure
+from os.path import exists
 
 def file_opener(data_type, version):
     path = f"./{version}/data/ko_KR"
@@ -17,8 +10,9 @@ def file_opener(data_type, version):
     return json_file["data"]
 
 def item_to_csv(items, version):
-    item_datas = { 'id': [], 'gold_purchase': [], 'gold_sell': [] }
+    if exists(f'./{version}/items.csv'): return
 
+    item_datas = { 'id': [], 'gold_purchase': [], 'gold_sell': [] }
     for item_id in items.keys():
         item = items[item_id]
         item_datas['id'].append(item_id)
@@ -30,11 +24,11 @@ def item_to_csv(items, version):
     pd_data.to_csv(f'./{version}/items.csv', index=False) #, encoding="cp949")
 
 def champ_to_csv(champs, version):
-    champ_datas = champion_structure()
+    if exists('./{version}/champs.csv'): return
 
+    champ_datas = { 'name': [], 'key': [], 'tags': [] }
     for champ_name in champs.keys():
         champ = champs[champ_name]
-
         champ_datas['name'].append(champ_name)
         champ_datas['key'].append(champ['key'])
         champ_datas['tags'].append(champ['tags'])
@@ -43,27 +37,32 @@ def champ_to_csv(champs, version):
     pd_data = pd_data.sort_values(by=["key"])
     pd_data.to_csv(f'./{version}/champs.csv', index=False) #, encoding="utf-8")
 
-def champ_to_dummy(version):
-    dummies = ['Mage', 'Fighter', 'Support', 'Tank', 'Assassin', 'Marksman']
+def champ_to_vector_by_tag(version):
+    if exists(f'./{version}/champ_vector_by_tag.csv'): return
+
+    roles = ['Mage', 'Fighter', 'Support', 'Tank', 'Assassin', 'Marksman']
     champs = pd.read_csv(f'./{version}/champs.csv')
-    tags = champs['tags'].tolist()
+    champ_names = champs['name'].to_list()
+    tags = champs['tags'].to_list()
 
-    cham_dummies = {}
-    for dummy in dummies:
-        cham_dummies[dummy] = []
-
+    champ_vectors = []
     for tag in tags:
-        for dummy in dummies:
-            if dummy in tag : cham_dummies[dummy].append(1)
-            else            : cham_dummies[dummy].append(0)
+        tag = tag.replace('\'', '').strip('][').split(', ')
+        champ_vectors.append([1 if (role in tag) else 0 for role in roles])
 
-    cham_dummies = pd.DataFrame(cham_dummies)
-    cham_dummies
+    champ_vectors = pd.DataFrame(champ_vectors, columns=roles, index=champ_names)
+    champ_vectors.to_csv(f'./{version}/champ_vector_by_tag.csv')
 
-    champs.drop(columns=['tags'], inplace=True)
-    champs = pd.concat([champs, cham_dummies], axis=1)
+def champ_to_vector_by_name(version):
+    if exists(f'./{version}/champ_vector_by_name.csv'): return
 
-    champs.to_csv(f'./{version}/champs_dummy_variable.csv', index=False)
+    champs = pd.read_csv(f'./{version}/champs.csv')
+    champ_names = champs['name'].to_list()
+    champs.drop(['key', 'tags'], axis='columns', inplace=True)
+
+    champs = pd.get_dummies(champs, prefix='', prefix_sep='')
+    champs.index = champ_names
+    champs.to_csv(f'./{version}/champ_vector_by_name.csv')
 
 if __name__ == '__main__':
     version = sys.argv[1]
@@ -73,4 +72,5 @@ if __name__ == '__main__':
 
     item_to_csv(items, version)
     champ_to_csv(champions, version)
-    champ_to_dummy(version)
+    champ_to_vector_by_tag(version)
+    champ_to_vector_by_name(version)
