@@ -1,7 +1,6 @@
 import os, sys, json
 import send_request
 import pandas as pd
-from tqdm import tqdm
 
 # get parameter
 server = sys.argv[1]

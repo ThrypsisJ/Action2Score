@@ -32,13 +32,13 @@ if __name__ == '__main__':
 
         puuids = []
         for row in enumerate(reader):
-            puuids.append(row[1])
+            puuids.append(row[1][0])
         shuffle(puuids)
 
         for idx, puuid in enumerate(puuids):
             if idx == 500: break
 
-            print(f'[{puuid_f[:-4]} - {idx+1}/1000] ', end='')
+            print(f'[{puuid_f[:-4]} - {idx+1}/500] ', end='')
             response = sender.match_list_from_puuid(puuid)
             if response == None: continue
             response = response.json()
