@@ -14,7 +14,7 @@ class match_req_sender():
         }
         self.res_stats = {
             "NoData"    : 404,
-            "Retry"     : (429, 500, 502, 503, 504),
+            "Retry"     : (400, 429, 500, 502, 503, 504),
             "Forbidden" : 403
         }
 
@@ -53,7 +53,7 @@ class match_req_sender():
         return res_summ
 
     def match_list_from_puuid(self, puuid):
-        api_mat_list = self.url + f'lol/match/v5/matches/by-puuid/{puuid}/ids'
+        api_mat_list = self.url + f'lol/match/v5/matches/by-puuid/{puuid}/ids?start=0&count=100'
         res_mat_list = requests.get(api_mat_list, headers=self.req_header)
 
         while True:

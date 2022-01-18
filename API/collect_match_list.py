@@ -31,16 +31,17 @@ if __name__ == '__main__':
         writer = csv.writer(file)
 
         puuids = []
-        for row in enumerate(reader): puuids.append(row[0])
+        for row in enumerate(reader):
+            puuids.append(row[1])
         shuffle(puuids)
 
         for idx, puuid in enumerate(puuids):
-            if idx == 1000: break
+            if idx == 500: break
 
             print(f'[{puuid_f[:-4]} - {idx+1}/1000] ', end='')
             response = sender.match_list_from_puuid(puuid)
             if response == None: continue
-            response = response.join()
+            response = response.json()
             for match in response: writer.writerow([match])
 
         file.close()
