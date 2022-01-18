@@ -7,4 +7,8 @@
 *.vscode*
 DataDragon/11.9.1
 DataDragon/11.10.1
-Dataset
+Dataset/match_list
+Dataset/matches_raw
+Dataset/puuids
+Dataset/raw
+Dataset/summoner_ids
