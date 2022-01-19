@@ -16,7 +16,7 @@ def item_to_csv(items, version):
     for item_id in items.keys():
         item = items[item_id]
         item_datas['id'].append(item_id)
-        item_datas['gold_purchase'].append(item['gold']['base'])
+        item_datas['gold_purchase'].append(item['gold']['total'])
         item_datas['gold_sell'].append(item['gold']['sell'])
     
     pd_data = pd.DataFrame(item_datas)
@@ -64,6 +64,17 @@ def champ_to_vector_by_name(version):
     champs.index = champ_names
     champs.to_csv(f'./{version}/champ_vector_by_name.csv')
 
+def item_to_minmax(version):
+    if exists(f'./{version}/items_vector.csv'): return
+
+    items = pd.read_csv(f'{version}/items.csv', index_col='id')
+    max_gold_purchase = max(items['gold_purchase'].to_list())
+    max_gold_sell = max(items['gold_sell'].to_list())
+
+    items['gold_purchase'] = items['gold_purchase'].apply(lambda x: x / max_gold_purchase)
+    items['gold_sell'] = items['gold_sell'].apply(lambda x: x / max_gold_sell)
+    items.to_csv(f'./{version}/items_vector.csv')
+
 if __name__ == '__main__':
     version = sys.argv[1]
 
@@ -71,6 +82,7 @@ if __name__ == '__main__':
     champions = file_opener('champion', version)
 
     item_to_csv(items, version)
+    item_to_minmax(version)
     champ_to_csv(champions, version)
     champ_to_vector_by_tag(version)
     champ_to_vector_by_name(version)

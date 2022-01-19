@@ -103,4 +103,4 @@ def challengers():
 
     challenger_data = pd.DataFrame(challenger_match_result)
     challenger_save_name = './processed_csvs/challenger_result.csv'
-    file_io.save_to_csv(challenger_data, challenger_save_name, sort_by='match_no')        
+    file_io.save_to_csv(challenger_data, challenger_save_name, sort_by='match_no')
