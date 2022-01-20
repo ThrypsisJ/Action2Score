@@ -7,8 +7,12 @@
 *.vscode*
 DataDragon/11.9.1
 DataDragon/11.10.1
+DataDragon/11.11.1
 Dataset/match_list
 Dataset/matches_raw
+Dataset/matches_csv
+Dataset/matches_result
+Dataset/matches_tensor
 Dataset/puuids
 Dataset/raw
 Dataset/summoner_ids

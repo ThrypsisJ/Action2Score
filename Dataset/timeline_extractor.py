@@ -22,7 +22,7 @@ def feature_reset():
         "BUILDING_KILL": [], "BUILDING_KILL_ASSIST": [],
         "ELITE_MONSTER_KILL": [], "ELITE_MONSTER_KILL_ASSIST": [],
         "event_weight": [],
-        # other info
+        # other info (it is not features)
         "player_level": [], "skill_level": [], "tower_diff": [], "is_valid": []
     }
     return new_feature
@@ -35,13 +35,13 @@ def extract(server):
         save_path = save_path + path
         if not exists(save_path): makedirs(save_path)
 
-    feature = feature_reset()
     tline_json_list = [file for file in listdir(raw_path) if '_timeline' in file]
 
     total = len(tline_json_list)
     for idx, tline_json in enumerate(tline_json_list):
         print(f'[{idx+1:5d}/{total:5d}] extracting {tline_json}')
 
+        feature = feature_reset()
         save_name = f'{save_path}{tline_json[:-14]}.csv'
         if exists(save_name): continue
 
@@ -64,7 +64,6 @@ def extract(server):
         feature = feature[feature['is_valid']==True]
         feature.sort_values(by='time', inplace=True)
         feature.to_csv(save_name, index=False, encoding='utf-8')
-        feature = feature_reset()
 
 if __name__ == '__main__':
     server = sys.argv[1]
