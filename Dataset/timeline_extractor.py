@@ -53,7 +53,7 @@ def extract(server):
         parser = tfe.data_parser(tline_json, mat_json)
 
         for idx in range(10):
-            for timestamp in parser.player_timelines[idx]:
+            for timestamp in parser.player_timelines[idx].values():
                 for key in feature.keys():
                     if key == 'player':
                         feature[key].append(idx+1)

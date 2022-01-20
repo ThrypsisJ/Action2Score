@@ -15,14 +15,14 @@ class data_parser:
     ############### basic functions ##############
     ##############################################
     def __init__(self, timeline_json, mat_json):
-        version = mat_json['info']['gameVersion'][:-9] + '.1'
+        version = f'{mat_json["info"]["gameVersion"][:-9]}.1'
         self.champ_vec = pd.read_csv(f'../DataDragon/{version}/champ_vector_by_tag.csv', index_col=0)
         self.item_vec = pd.read_csv(f'../DataDragon/{version}/items_vector.csv', index_col=0)
 
         self.skill_infos = self.get_skill_infos(mat_json, version)
         self.max_timestamp = timeline_json['info']['frames'][-1]['timestamp']
         self.player_timelines = [self.timestamps_creator(timeline_json) for _ in range(0, 10)]
-        self.player_info_to_timeline()
+        self.player_info_to_timeline(mat_json)
 
         self.remain_turret = self.turret_remain(timeline_json)
         self.empty_turret_filler(self.remain_turret)
@@ -35,7 +35,7 @@ class data_parser:
         self.cal_distance()
         self.position_normalize()
 
-        self.skill_level_calculator(timeline_json["info"]["frames"], mat_json['info']['participants'])
+        self.skill_level_calculator(timeline_json["info"]["frames"])
         self.empty_skill_level_filler()
 
         self.score_events(timeline_json)
@@ -46,6 +46,8 @@ class data_parser:
         skill_infos = []
         for player in mat_json['info']['participants']:
             champ_name = player["championName"]
+            if champ_name == 'FiddleSticks': champ_name = 'Fiddlesticks'
+
             file = open(f'{path}{champ_name}.json', 'r')
             spells = json.load(file)['data'][champ_name]['spells']
             skill_info = {}
@@ -55,13 +57,14 @@ class data_parser:
         return skill_infos
 
     def player_info_to_timeline(self, mat_json):
-        for player in mat_json['info']['participants']:
-            for timestamp in self.player_timelines[player-1].values():
+        for idx, player in enumerate(mat_json['info']['participants']):
+            for timestamp in self.player_timelines[idx].values():
                 champ_name = player['championName']
+                if champ_name == 'FiddleSticks': champ_name = 'Fiddlesticks'
                 for tag in self.champ_vec.columns: timestamp[tag] = int(self.champ_vec.loc[champ_name, tag])
                 timestamp[player['individualPosition']] = 1
 
-    def new_feature():
+    def new_feature(self):
         feature = {
             'time': None,
             # champion
@@ -109,7 +112,11 @@ class data_parser:
         for frame in frames:
             for event in frame['events']:
                 timestamp = event['timestamp']
-                player = event['killerId'] if 'killerId' in event.keys() else event['participantId']
+                if timestamp == 0: continue
+                if 'killerId' in event.keys()       : player = event['killerId']
+                elif 'creatorId' in event.keys()    : player = event['creatorId']
+                elif 'participantId' in event.keys(): player = event['participantId']
+                else                                : continue
                 if player == 0: continue
 
                 if 'position' in event.keys():
@@ -134,16 +141,16 @@ class data_parser:
             for player, regular_frame in frame["participantFrames"].items():
                 x_location = regular_frame['position']['x']
                 y_location = regular_frame['position']['y']
-                self.player_timelines[player-1][timestamp]['x_location'] = x_location
-                self.player_timelines[player-1][timestamp]['y_location'] = y_location
+                self.player_timelines[int(player)-1][timestamp]['x_location'] = x_location
+                self.player_timelines[int(player)-1][timestamp]['y_location'] = y_location
 
     def empty_position_filler(self):
-        for player, timeline in self.player_timelines.items():
+        for player, timeline in enumerate(self.player_timelines):
             for key, timestamp in timeline.items():
                 if timestamp['x_location'] != None:
                     prev_x = timestamp['x_location']
                     prev_y = timestamp['y_location']
-                    x_chunk, y_chunk = self.cal_end_position_chunk(player-1, key)
+                    x_chunk, y_chunk = self.cal_end_position_chunk(player, key)
                     prev_timestamp = key
                 else:
                     time_diff = key - prev_timestamp
@@ -179,13 +186,13 @@ class data_parser:
         return x_chunk, y_chunk
 
     def cal_distance(self):
-        for timestamp in self.timestamps.keys():
+        for timestamp in self.player_timelines[0].keys():
             players = []
-            for timeline in self.player_timelines.values():
+            for timeline in self.player_timelines:
                 players.append((timeline[timestamp]['x_location'], timeline[timestamp]['y_location']))
             
             # mean distance
-            pairs = list(combinations([0, 1, 2, 3, 4]))
+            pairs = list(combinations([0, 1, 2, 3, 4], r=2))
             blue_distance, red_distance = [], []
             player_distances = [[] for _ in range(10)]
             for pair in pairs:
@@ -201,9 +208,13 @@ class data_parser:
 
             for idx in range(10):
                 if idx < 5:
-                    player_distances[idx] = sum(player_distances[idx]) / sum(blue_distance)
+                    if not sum(blue_distance) == 0:
+                        player_distances[idx] = sum(player_distances[idx]) / sum(blue_distance)
+                    else: player_distances[idx] = 0.0
                 else:
-                    player_distances[idx] = sum(player_distances[idx]) / sum(red_distance)
+                    if not sum(red_distance) == 0:
+                        player_distances[idx] = sum(player_distances[idx]) / sum(red_distance)
+                    else: player_distances[idx] = 0.0
 
             for idx, timeline in enumerate(self.player_timelines):
                 timeline[timestamp]['distance'] = player_distances[idx]
@@ -236,7 +247,7 @@ class data_parser:
         return remain_turrets
     
     def empty_turret_filler(self, remain_turrets):
-        for player, timeline in self.player_timelines.items():
+        for player, timeline in enumerate(self.player_timelines):
             diff_score = 0
             for key, timestamp in timeline.items():
                 if key in remain_turrets.keys():
@@ -252,7 +263,7 @@ class data_parser:
     ############### Level ###############
     #####################################
     def level_calculator(self, frames):
-        for timeline in self.player_timelines.values():
+        for timeline in self.player_timelines:
             timeline[0]["player_level"] = 1
         for frame in frames:
             for event in frame["events"]:
@@ -263,7 +274,7 @@ class data_parser:
                     self.player_timelines[player-1][timestamp]["player_level"] = level
 
     def empty_level_filler(self):
-        for timeline in self.player_timelines.values():
+        for timeline in self.player_timelines:
             prev_level = 1
             for timestamp in timeline.values():
                 if timestamp["player_level"] == None:
@@ -280,14 +291,14 @@ class data_parser:
         for frame in frames:
             for event in frame["events"]:
                 if event["type"] == "SKILL_LEVEL_UP":
-                    player = event["participantId"]
+                    player = event["participantId"] - 1
                     timestamp = event["timestamp"]
                     slot = event["skillSlot"]
                     recent_level[player][slot] += 1
-                    self.player_timelines[player-1][timestamp]["skill_level"] = recent_level[player].copy()
+                    self.player_timelines[player][timestamp]["skill_level"] = recent_level[player].copy()
 
     def empty_skill_level_filler(self):
-        for timeline in self.player_timelines.values():
+        for timeline in self.player_timelines:
             prev_level = { 1: 0, 2: 0, 3: 0, 4: 0 }
             for timestamp in timeline.values():
                 if timestamp['skill_level'] == None:
@@ -322,11 +333,11 @@ class data_parser:
 
         event_weight = 1.0 / (len(assists) + 1.0)
         if killer != 0:
-            self.player_timelines[killer-1][timestamp]["event"][event["type"]] = 1
+            self.player_timelines[killer-1][timestamp][event["type"]] = 1
             self.player_timelines[killer-1][timestamp]["event_weight"] = event_weight
             self.player_timelines[killer-1][timestamp]["is_valid"] = True
             for assist in assists:
-                self.player_timelines[assist-1][timestamp]["event"][event["type"]+"_ASSIST"] = 1
+                self.player_timelines[assist-1][timestamp][event["type"]+"_ASSIST"] = 1
                 self.player_timelines[assist-1][timestamp]["event_weight"] = event_weight
                 self.player_timelines[assist-1][timestamp]["is_valid"] = True
 
@@ -340,20 +351,19 @@ class data_parser:
         if 'victimDamageDealt' in event: victimDamageDealt = event['victimDamageDealt']
         damage_dict = self.damage_calculator(event["victimDamageReceived"], victimDamageDealt, killer, victim, assists)
 
-        if killer != "0":
-            killer_weight = float(damage_dict[killer-1]) / float(damage_dict["total"])
+        if killer != 0:
+            killer_weight = float(damage_dict[killer]) / float(damage_dict["total"])
             self.player_timelines[killer-1][timestamp][event["type"]] = 1
             self.player_timelines[killer-1][timestamp]["event_weight"] = killer_weight
             self.player_timelines[killer-1][timestamp]["is_valid"] = True
 
-        victim_weight = float(damage_dict[victim-1]) / float(damage_dict["total"])
+        victim_weight = float(damage_dict[victim]) / float(damage_dict["total"])
         self.player_timelines[victim-1][timestamp][event["type"]+"_VICTIM"] = 1
         self.player_timelines[victim-1][timestamp]["event_weight"] = victim_weight
         self.player_timelines[victim-1][timestamp]["is_valid"] = True
 
         for assist in assists:
-            assist = str(assist)
-            assist_weight = float(damage_dict[assist-1]) / float(damage_dict["total"])
+            assist_weight = float(damage_dict[assist]) / float(damage_dict["total"])
             self.player_timelines[assist-1][timestamp][event["type"]+"_ASSIST"] = 1
             self.player_timelines[assist-1][timestamp]["event_weight"] = assist_weight
             self.player_timelines[assist-1][timestamp]["is_valid"] = True
@@ -363,10 +373,10 @@ class data_parser:
         damage_dict = {}
         # initialize damage_dict
         damage_dict["total"] = 0
-        damage_dict[victim-1] = 0
-        damage_dict[killer-1] = 0
+        damage_dict[victim] = 0
+        damage_dict[killer] = 0
         for assist in assists:
-            damage_dict[assist-1] = 0
+            damage_dict[assist] = 0
 
         # calculate recv damage
         for recv_dmg in victim_dmg_recv:
@@ -376,21 +386,21 @@ class data_parser:
             damage_dict["total"] += quantity
             if player != 0:
                 if player in damage_dict.keys():
-                    damage_dict[player-1] += quantity
+                    damage_dict[player] += quantity
         
         # calculate dealt damage
-        damage_dict[victim-1] = 0
+        damage_dict[victim] = 0
         if victim_dmg_dealt != None:
             for dealt_dmg in victim_dmg_dealt:
                 quantity = dealt_dmg["magicDamage"] + dealt_dmg["physicalDamage"] + dealt_dmg["trueDamage"]
-                damage_dict[victim-1] += quantity
+                damage_dict[victim] += quantity
 
         return damage_dict
 
     def score_item(self, event):
         timestamp = event['timestamp']
         player = event['participantId'] - 1
-        item_value = data_parser.item_vec.loc[event['itemId']]
+        item_value = self.item_vec.loc[event['itemId']]
         if event['type'] == 'ITEM_SOLD':
             event_weight = float(item_value['gold_sell'])
         else:
@@ -407,7 +417,7 @@ class data_parser:
             ward_value = data_parser.ward_dict[event["wardType"]]
 
             event_weight = ward_value / 30.0
-            self.player_timelines[player][timestamp]["event"][event["type"]] = 1
+            self.player_timelines[player][timestamp][event["type"]] = 1
             self.player_timelines[player][timestamp]["event_weight"] = event_weight
             self.player_timelines[player][timestamp]["is_valid"] = True
 
@@ -428,13 +438,13 @@ class data_parser:
 
     def score_skill_level(self, event):
         timestamp = event['timestamp']
-        player = event['participantId']
+        player = event['participantId'] - 1
         
         skill_slot = event['skillSlot']
-        max_level = self.skill_infos[player-1][skill_slot]['maxrank']
+        max_level = self.skill_infos[player][skill_slot]
         level = self.player_timelines[player][timestamp]['skill_level'][skill_slot]
 
         event_weight = float(level) / float(max_level)
-        self.player_timelines[player][timestamp]['event'][event['type']] = 1
+        self.player_timelines[player][timestamp][event['type']] = 1
         self.player_timelines[player][timestamp]['event_weight'] = event_weight
         self.player_timelines[player][timestamp]['is_valid'] = True
