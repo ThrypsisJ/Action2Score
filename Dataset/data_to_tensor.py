@@ -15,9 +15,8 @@ if __name__ == '__main__':
 
     total = len(listdir(csv_path))
     for idx, file in enumerate(listdir(csv_path)):
-        print(f'[{idx+1:5d}/{total:5d} tensorizing {file}]')
+        print(f'[{idx+1:5d}/{total:5d}] tensorizing {file}')
         full_path = csv_path + file
-        print(full_path)
         save_name = save_path + file[:-4] + '.pkl'
 
         match_df = pd.read_csv(full_path, header=0)
@@ -28,4 +27,4 @@ if __name__ == '__main__':
             player_df.sort_values(by='time', ascending=False, inplace=True)
             match_tensors.append(tensor(player_df.to_numpy(), dtype=float32, requires_grad=True))
 
-        with open(save_name, 'wb') as pickle_file: pickle.dump(match_tensors)
+        with open(save_name, 'wb') as pickle_file: pickle.dump(match_tensors, pickle_file)
