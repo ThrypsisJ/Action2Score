@@ -26,7 +26,7 @@ class Model():
 
         self.get_parameter_mean()
 
-    def test(self, features, winner):
+    def validate(self, features, winner):
         blue_h0, red_h0 = self.get_h0(winner)
         for player in range(10): self.sub_models[player].eval()
 
@@ -42,12 +42,10 @@ class Model():
 
         return scores
 
-    def test(self, features, winner, server, mat_name):
-        scores = self.test(features, winner)
-        path = './matches_scores/'
+    def test(self, features, winner, path, mat_name):
+        scores = self.validate(features, winner)
         if not exists(path): makedirs(path)
-        if not exists(f'{path+server}/'): makedirs(f'{path+server}/')
-        with open(f'{path}{server}{mat_name}.pkl', 'wb') as file:
+        with open(f'{path}{mat_name}.pkl', 'wb') as file:
             dump(scores, file, HIGHEST_PROTOCOL)
 
     def loss_func(self, blue_score, red_score, winner):
@@ -66,7 +64,8 @@ class Model():
             feature = features[player].to('cuda')
             if feature.shape[0] == 0: feature = zeros(1, 30, device='cuda')
             feature = feature.unsqueeze(0)
-            h0 = blue_h0 if player < 5 else red_h0
+            # h0 = blue_h0 if player < 5 else red_h0
+            h0 = self.loser_h0
             score = self.sub_models[player](feature, h0)
             scores.append(score)
         return scores

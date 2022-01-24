@@ -13,6 +13,8 @@ Dataset/matches_raw
 Dataset/matches_csv
 Dataset/matches_result
 Dataset/matches_tensor
+Dataset/matches_scores
 Dataset/puuids
 Dataset/raw
 Dataset/summoner_ids
+Dataset/experiment
