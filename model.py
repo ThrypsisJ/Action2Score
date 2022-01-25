@@ -121,5 +121,5 @@ class SubModel(nn.Module):
     def forward(self, feature, h0):
         output, _ = self.gru(feature, h0)
         output = self.linear(output)
-        output = tanh(output)
+        output = self.tanh(output)
         return output
