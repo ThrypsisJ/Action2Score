@@ -116,9 +116,10 @@ class SubModel(nn.Module):
         super(SubModel, self).__init__()
         self.gru = nn.GRU(30, hidden_size, gru_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, 1, bias=True)
+        self.tanh = nn.Tanh()
 
     def forward(self, feature, h0):
         output, _ = self.gru(feature, h0)
         output = self.linear(output)
-        output = tan(output)
+        output = tanh(output)
         return output
