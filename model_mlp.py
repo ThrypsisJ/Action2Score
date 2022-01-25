@@ -1,36 +1,42 @@
-from torch import nn, optim, zeros, ones, tan, cuda
+from torch import nn, optim, zeros, ones, tan
 from os.path import exists
 from os import makedirs, remove
 from pickle import load, dump, HIGHEST_PROTOCOL
 
 class Model():
-    def __init__(self, hidden_size, gru_layers, lr):
-        self.winner_h0 = ones([gru_layers, 1, hidden_size], device='cuda', requires_grad=True).float()
-        self.loser_h0 = zeros([gru_layers, 1, hidden_size], device='cuda', requires_grad=True).float()
-
-        self.sub_models = [SubModel(hidden_size, gru_layers).to('cuda') for _ in range(10)]
-        self.optims = [optim.Adam(s_model.parameters(), lr=lr) for s_model in self.sub_models]
+    def __init__(self, dimensions, lr):
+        layers = []
+        for idx, dimension in enumerate(dimensions):
+            if idx == 0:
+                layers.append(nn.Linear(30, dimension))
+                layers.append(nn.LeakyReLU)
+                prev_dim = dimension
+            elif idx+1 != len(layers):
+                layers.append(nn.Linear(prev_dim, dimension))
+                layers.append(nn.LeakyReLU)
+                prev_dim = dimension
+            else:
+                layers.append(nn.Linear(prev_dim, dimension))
+                layers.append(nn.Sigmoid)
+        self.model = nn.Sequential(*layers)
+        self.optim = optim.Adam(self.model.parameters(), lr=lr)
 
     def train(self, features, winner):
-        blue_h0, red_h0 = self.get_h0(winner)
-        for player in range(10): self.sub_models[player].train()
+        self.model.train()
 
-        scores = self.proceed(features, blue_h0, red_h0)
+        scores = self.proceed(features)
         blue_total = sum([scores[idx].sum() for idx in range(0, 5)])
         red_total = sum([scores[idx].sum() for idx in range(5, 10)]) 
         loss = self.loss_func(blue_total, red_total, winner)
 
-        for player in range(10): self.optims[player].zero_grad()
+        self.optim.zero_grad()
         loss.backward()
-        for player in range(10): self.optims[player].step()
-
-        self.get_parameter_mean()
+        self.optim.step()
 
     def validate(self, features, winner):
-        blue_h0, red_h0 = self.get_h0(winner)
-        for player in range(10): self.sub_models[player].eval()
+        self.model.eval()
 
-        scores = self.proceed(features, blue_h0, red_h0)
+        scores = self.proceed(features)
         blue_total = sum([scores[idx].sum() for idx in range(0, 5)])
         red_total = sum([scores[idx].sum() for idx in range(5, 10)])
         self.test_loss += self.loss_func(blue_total, red_total, winner)
@@ -44,7 +50,6 @@ class Model():
 
     def test(self, features, winner, path, mat_name):
         scores = self.validate(features, winner)
-        scores = scores.to('cpu').detach()
         if not exists(path): makedirs(path)
         with open(f'{path}{mat_name}.pkl', 'wb') as file:
             dump(scores, file, HIGHEST_PROTOCOL)
@@ -54,35 +59,15 @@ class Model():
         else                : loss = nn.ReLU()(blue_score - red_score)
         return loss
 
-    def get_h0(self, winner):
-        blue_h0 = self.winner_h0 if winner == 'blue' else self.loser_h0
-        red_h0 = self.winner_h0 if winner == 'red' else self.loser_h0
-        return blue_h0, red_h0
-    
-    def proceed(self, features, blue_h0, red_h0):
+    def proceed(self, features):
         scores = []
-        cuda.empty_cache()
         for player in range(10):
             feature = features[player].to('cuda')
             if feature.shape[0] == 0: feature = zeros(1, 30, device='cuda')
-            feature = feature.unsqueeze(0)
-            # h0 = blue_h0 if player < 5 else red_h0
-            h0 = self.loser_h0
-            score = self.sub_models[player](feature, h0)
+            score = self.model(feature)
             scores.append(score)
         return scores
-
-    def get_parameter_mean(self):
-        params = self.sub_models
-        param_keys = params[0].state_dict().keys()
-
-        tmp_params = {}
-        for key in param_keys:
-            tmp_params[key] = sum([param.state_dict()[key] for param in params]) / 10
-
-        for player in range(10):
-            self.sub_models[player].load_state_dict(tmp_params)
-
+        
     def reset_result(self):
         self.tp, self.tn, self.fp, self.fn = 0, 0, 0, 0
         self.test_loss = 0
@@ -116,9 +101,10 @@ class SubModel(nn.Module):
         super(SubModel, self).__init__()
         self.gru = nn.GRU(30, hidden_size, gru_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, 1, bias=True)
+        self.tanh = nn.Tanh()
 
     def forward(self, feature, h0):
         output, _ = self.gru(feature, h0)
         output = self.linear(output)
-        output = tan(output)
+        output = self.tanh(output)
         return output
