@@ -44,7 +44,7 @@ class Model():
 
     def test(self, features, winner, path, mat_name):
         scores = self.validate(features, winner)
-        scores = scores.to('cpu').detach()
+        for idx in range(len(scores)): scores[idx] = scores[idx].to('cpu').detach()
         if not exists(path): makedirs(path)
         with open(f'{path}{mat_name}.pkl', 'wb') as file:
             dump(scores, file, HIGHEST_PROTOCOL)
@@ -66,8 +66,8 @@ class Model():
             feature = features[player].to('cuda')
             if feature.shape[0] == 0: feature = zeros(1, 30, device='cuda')
             feature = feature.unsqueeze(0)
-            # h0 = blue_h0 if player < 5 else red_h0
-            h0 = self.loser_h0
+            h0 = blue_h0 if player < 5 else red_h0
+            # h0 = self.loser_h0
             score = self.sub_models[player](feature, h0)
             scores.append(score)
         return scores
