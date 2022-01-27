@@ -1,12 +1,13 @@
-from torch import nn, optim, zeros, ones, tan, cuda
+from torch import nn, optim, zeros, ones, cuda
 from os.path import exists
 from os import makedirs, remove
 from pickle import load, dump, HIGHEST_PROTOCOL
 
 class Model():
-    def __init__(self, hidden_size, gru_layers, lr):
+    def __init__(self, hidden_size, gru_layers, lr, zero_h0):
         self.winner_h0 = ones([gru_layers, 1, hidden_size], device='cuda', requires_grad=True).float()
         self.loser_h0 = zeros([gru_layers, 1, hidden_size], device='cuda', requires_grad=True).float()
+        self.zero_h0 = zero_h0
 
         self.sub_models = [SubModel(hidden_size, gru_layers).to('cuda') for _ in range(10)]
         self.optims = [optim.Adam(s_model.parameters(), lr=lr) for s_model in self.sub_models]
@@ -33,7 +34,7 @@ class Model():
         scores = self.proceed(features, blue_h0, red_h0)
         blue_total = sum([scores[idx].sum() for idx in range(0, 5)])
         red_total = sum([scores[idx].sum() for idx in range(5, 10)])
-        self.test_loss += self.loss_func(blue_total, red_total, winner)
+        self.test_loss += self.loss_func(blue_total, red_total, winner).item()
 
         if blue_total >= red_total and winner == 'blue' : self.tp += 1 
         if blue_total >= red_total and winner == 'red'  : self.fp += 1 
@@ -55,8 +56,11 @@ class Model():
         return loss
 
     def get_h0(self, winner):
-        blue_h0 = self.winner_h0 if winner == 'blue' else self.loser_h0
-        red_h0 = self.winner_h0 if winner == 'red' else self.loser_h0
+        if not self.zero_h0:
+            blue_h0 = self.winner_h0 if winner == 'blue' else self.loser_h0
+            red_h0 = self.winner_h0 if winner == 'red' else self.loser_h0
+        else:
+            blue_h0, red_h0 = self.loser_h0, self.loser_h0
         return blue_h0, red_h0
     
     def proceed(self, features, blue_h0, red_h0):
@@ -67,7 +71,6 @@ class Model():
             if feature.shape[0] == 0: feature = zeros(1, 30, device='cuda')
             feature = feature.unsqueeze(0)
             h0 = blue_h0 if player < 5 else red_h0
-            # h0 = self.loser_h0
             score = self.sub_models[player](feature, h0)
             scores.append(score)
         return scores

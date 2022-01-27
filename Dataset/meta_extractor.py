@@ -2,6 +2,20 @@ from os import listdir, makedirs
 from os.path import exists
 import sys, json
 import pandas as pd
+from pathlib import Path
+
+class meta_analyzer():
+    def __init__(self):
+        self.meta_datas = pd.DataFrame(columns=['mat_no', 'player', 'gold', 'creep', 'win'])
+    
+    def df_builder(self):
+        meta_path = Path('./matches_raw/')
+        sco_norm_path = Path('../experiment/matches_scores/normal/')
+        for mat_name in sco_norm_path.glob('*'):
+            mat_name = mat_name.name
+
+    def meta_analyzer(self):
+
 
 if __name__ == '__main__':
     server = sys.argv[1]

@@ -17,4 +17,5 @@ Dataset/matches_scores
 Dataset/puuids
 Dataset/raw
 Dataset/summoner_ids
-experiment
+experiment/matches_scores
+experiment/scores_with_matdata
