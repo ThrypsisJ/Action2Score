@@ -11,11 +11,9 @@ DataDragon/11.11.1
 Dataset/match_list
 Dataset/matches_raw
 Dataset/matches_csv
-Dataset/matches_result
 Dataset/matches_tensor
-Dataset/matches_scores
-Dataset/puuids
 Dataset/raw
-Dataset/summoner_ids
+Dataset/meta_analysis.ftr
+Dataset/meta_analysis_with_score.ftr
 experiment/matches_scores
 experiment/scores_with_matdata
