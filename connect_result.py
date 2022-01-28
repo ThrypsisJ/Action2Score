@@ -2,60 +2,56 @@
 import pandas as pd
 import pickle
 import numpy as np
+from pathlib import Path
 from os import listdir, makedirs
 from os.path import exists
 from tqdm import tqdm
 
-score_path = './experiment/matches_scores'
-norm_score = f'{score_path}/normal'
-zero_score = f'{score_path}/zero_h0'
-matches_norm = listdir(norm_score)
-matches_zero = listdir(zero_score)
+score_path = Path('./experiment/matches_scores')
+norm_score = score_path / 'normal'
+zero_score = score_path / 'zero_h0'
+mat_path = Path('./Dataset/matches_csv')
+save_norm = Path('./experiment/scores_with_matdata/norm')
+save_zero = Path('./experiment/scores_with_matdata/zero_h0')
+if not save_norm.exists(): save_norm.mkdir(parents=True)
+if not save_zero.exists(): save_zero.mkdir(parents=True)
 
-mat_path = './Dataset/matches_csv/legacy'
-
-save_path = './experiment/scores_with_matdata'
-if not exists(save_path): makedirs(save_path)
-if not exists(f'{save_path}/normal'): makedirs(f'{save_path}/normal')
-if not exists(f'{save_path}/zero_h0'): makedirs(f'{save_path}/zero_h0')
 
 #%%
-for match in tqdm(matches_norm, ncols=50, ascii=True):
-    for serv in ['kr', 'euw1', 'eun1', 'na1', 'jp1']:
-        if serv in match:
-            mat_csv = f'{mat_path}/{serv}/{match[:-4]}.csv'
-            break
+matches_norm = list(norm_score.glob('*'))
+for idx, match in enumerate(matches_norm):
+    print(f'[Normal results] ({idx:5d}/{len(matches_norm)}) {idx/len(matches_norm)*100:3.1f}% progressing...', end='\r')
+    mat_csv = mat_path / f'{match.name[:-4]}.csv'
 
     mat_csv = pd.read_csv(mat_csv)
     mat_csv.insert(len(mat_csv.columns), 'score', np.nan)
-    with open(f'{norm_score}/{match}', 'rb') as file:
+
+    with match.open('rb') as file:
         mat_sco = pickle.load(file)
-    
+
     for player in range(10):
-        if len(mat_csv.loc[mat_csv.player==player+1]) == 0: continue
+        if (player+1) not in list(mat_csv.player): continue
         scos = mat_sco[player].squeeze().tolist()
         if isinstance(scos, list): scos.reverse()
         mat_csv.loc[(mat_csv.player==player+1), 'score'] = scos
-
-    mat_csv.to_feather(f'{save_path}/normal/{match[:-4]}.ftr')
+    mat_csv.to_feather(save_norm / f'{match.name[:-4]}.ftr')
 
 #%%
-for match in tqdm(matches_zero, ncols=50, ascii=True):
-    for serv in ['kr', 'euw1', 'eun1', 'na1', 'jp1']:
-        if serv in match:
-            mat_csv = f'{mat_path}/{serv}/{match[:-4]}.csv'
-            break
+matches_zero = list(zero_score.glob('*'))
+for idx, match in enumerate(matches_zero):
+    print(f'[Zero_h0 results] ({idx:5d}/{len(matches_zero)}) {idx/len(matches_zero)*100:3.1f}% progressing...', end='\r')
+    mat_csv = mat_path / f'{match.name[:-4]}.csv'
 
     mat_csv = pd.read_csv(mat_csv)
     mat_csv.insert(len(mat_csv.columns), 'score', np.nan)
-    with open(f'{zero_score}/{match}', 'rb') as file:
+
+    with match.open('rb') as file:
         mat_sco = pickle.load(file)
-    
+
     for player in range(10):
-        if len(mat_csv.loc[mat_csv.player==player+1]) == 0: continue
+        if (player+1) not in list(mat_csv.player): continue
         scos = mat_sco[player].squeeze().tolist()
         if isinstance(scos, list): scos.reverse()
         mat_csv.loc[(mat_csv.player==player+1), 'score'] = scos
-        
-    mat_csv.to_feather(f'{save_path}/zero_h0/{match[:-4]}.ftr')
+    mat_csv.to_feather(save_zero / f'{match.name[:-4]}.ftr')
 # %%
