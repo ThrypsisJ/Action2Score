@@ -3,9 +3,6 @@ import pandas as pd
 import pickle
 import numpy as np
 from pathlib import Path
-from os import listdir, makedirs
-from os.path import exists
-from tqdm import tqdm
 
 score_path = Path('./experiment/matches_scores')
 norm_score = score_path / 'normal'
@@ -15,7 +12,6 @@ save_norm = Path('./experiment/scores_with_matdata/norm')
 save_zero = Path('./experiment/scores_with_matdata/zero_h0')
 if not save_norm.exists(): save_norm.mkdir(parents=True)
 if not save_zero.exists(): save_zero.mkdir(parents=True)
-
 
 #%%
 matches_norm = list(norm_score.glob('*'))
