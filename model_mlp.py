@@ -1,24 +1,13 @@
-from torch import nn, optim, zeros, ones, tan
+from torch import nn, optim, zeros
 from os.path import exists
 from os import makedirs, remove
 from pickle import load, dump, HIGHEST_PROTOCOL
+from collections import OrderedDict
+from torch import cuda
 
 class Model():
     def __init__(self, dimensions, lr):
-        layers = []
-        for idx, dimension in enumerate(dimensions):
-            if idx == 0:
-                layers.append(nn.Linear(30, dimension))
-                layers.append(nn.LeakyReLU)
-                prev_dim = dimension
-            elif idx+1 != len(layers):
-                layers.append(nn.Linear(prev_dim, dimension))
-                layers.append(nn.LeakyReLU)
-                prev_dim = dimension
-            else:
-                layers.append(nn.Linear(prev_dim, dimension))
-                layers.append(nn.Sigmoid)
-        self.model = nn.Sequential(*layers)
+        self.model = SubModel(dimensions).to('cuda')
         self.optim = optim.Adam(self.model.parameters(), lr=lr)
 
     def train(self, features, winner):
@@ -37,6 +26,7 @@ class Model():
         self.model.eval()
 
         scores = self.proceed(features)
+        for idx in range(len(scores)): scores[idx] = scores[idx].to('cpu').detach()
         blue_total = sum([scores[idx].sum() for idx in range(0, 5)])
         red_total = sum([scores[idx].sum() for idx in range(5, 10)])
         self.test_loss += self.loss_func(blue_total, red_total, winner)
@@ -44,7 +34,7 @@ class Model():
         if blue_total >= red_total and winner == 'blue' : self.tp += 1 
         if blue_total >= red_total and winner == 'red'  : self.fp += 1 
         if blue_total < red_total and winner == 'blue'  : self.fn += 1 
-        if blue_total < red_total and winner == 'red'   : self.tn += 1 
+        if blue_total < red_total and winner == 'red'   : self.tn += 1
 
         return scores
 
@@ -61,6 +51,7 @@ class Model():
 
     def proceed(self, features):
         scores = []
+        cuda.empty_cache()
         for player in range(10):
             feature = features[player].to('cuda')
             if feature.shape[0] == 0: feature = zeros(1, 30, device='cuda')
@@ -84,7 +75,7 @@ class Model():
         if not exists(path): makedirs(path)
         if exists(path+fname): remove(path+fname)
 
-        param = self.sub_models[0].state_dict()
+        param = self.model.state_dict()
         with open(path+fname, 'wb') as file:
             dump(param, file, HIGHEST_PROTOCOL)
     
@@ -93,18 +84,21 @@ class Model():
         with open(path+fname, 'rb') as file:
             params = load(file)
 
-        for player in range(10):
-            self.sub_models[player].load_state_dict(params)
+        self.model.load_state_dict(params)
 
 class SubModel(nn.Module):
-    def __init__(self, hidden_size, gru_layers):
+    def __init__(self, linear_dims):
         super(SubModel, self).__init__()
-        self.gru = nn.GRU(30, hidden_size, gru_layers, batch_first=True)
-        self.linear = nn.Linear(hidden_size, 1, bias=True)
-        self.tanh = nn.Tanh()
+        layers = OrderedDict()
+        if len(linear_dims) > 1:
+            for idx in range(len(linear_dims)-1):
+                layers[f'{idx}'] = nn.Linear(linear_dims[idx], linear_dims[idx+1], bias=True)
+                layers[f'act_{idx}'] = nn.LeakyReLU()
+        layers['last'] = nn.Linear(linear_dims[-1], 1, bias=True)
+        layers['out'] = nn.Tanh()
 
-    def forward(self, feature, h0):
-        output, _ = self.gru(feature, h0)
-        output = self.linear(output)
-        output = self.tanh(output)
+        self.sequence = nn.Sequential(layers)
+
+    def forward(self, feature):
+        output = self.sequence(feature)
         return output

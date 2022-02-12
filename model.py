@@ -32,6 +32,7 @@ class Model():
         for player in range(10): self.sub_models[player].eval()
 
         scores = self.proceed(features, blue_h0, red_h0)
+        for idx in range(len(scores)): scores[idx] = scores[idx].to('cpu').detach()
         blue_total = sum([scores[idx].sum() for idx in range(0, 5)])
         red_total = sum([scores[idx].sum() for idx in range(5, 10)])
         self.test_loss += self.loss_func(blue_total, red_total, winner).item()
@@ -45,7 +46,6 @@ class Model():
 
     def test(self, features, winner, path, mat_name):
         scores = self.validate(features, winner)
-        for idx in range(len(scores)): scores[idx] = scores[idx].to('cpu').detach()
         if not exists(path): makedirs(path)
         with open(f'{path}{mat_name}.pkl', 'wb') as file:
             dump(scores, file, HIGHEST_PROTOCOL)
