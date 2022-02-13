@@ -1,15 +1,14 @@
 import timeline_feature_extractor as tfe
 import pandas as pd
 import json
-from os import listdir, makedirs
-from os.path import exists
-import sys
+from pathlib import Path
+from tqdm import tqdm
 
 def feature_reset():
     new_feature = {
         "time": [], "player": [],
         # champion
-        "mage": [], "fighter": [], "support": [], "tank": [], "assassin": [], "marksman": [],
+        "Mage": [], "Fighter": [], "Support": [], "Tank": [], "Assassin": [], "Marksman": [],
         # player position
         "TOP": [], "MIDDLE": [], "BOTTOM": [], "UTILITY": [], "JUNGLE": [],
         # location
@@ -27,30 +26,26 @@ def feature_reset():
     }
     return new_feature
 
-def extract(server):
-    raw_path = f'./matches_raw/legacy/{server}/'
+def extract():
+    tline_path = Path('./matches_raw/timeline')
+    meta_path = Path('./matches_raw/meta')
+    save_path = Path('./matches_csv/')
+    if not save_path.exists(): save_path.mkdir(parents=True)
 
-    save_path = ''
-    for path in ['./matches_csv/', 'legacy/', f'{server}/']:
-        save_path = save_path + path
-        if not exists(save_path): makedirs(save_path)
-
-    tline_json_list = [file for file in listdir(raw_path) if '_timeline' in file]
-
+    tline_json_list = sorted(list(tline_path.glob('*')))
+    meta_json_list = sorted(list(meta_path.glob('*')))
     total = len(tline_json_list)
-    for idx, tline_json in enumerate(tline_json_list):
-        print(f'[{idx+1:5d}/{total:5d}] extracting {tline_json}')
+    for idx, (tline, meta) in enumerate(zip(tline_json_list, meta_json_list)):
+        progress = (idx+1)/(total) * 100
+        print(f'[{idx+1:6d}/{total:6d}, {progress:4.2f}%] extracting {tline}')
 
         feature = feature_reset()
-        save_name = f'{save_path}{tline_json[:-14]}.csv'
-        if exists(save_name): continue
+        save_name = save_path / f'{tline.name[:-14]}.csv'
+        if save_name.exists() : continue
 
-        mat_json = open(f'{raw_path}{tline_json[:-14]}.json')
-        mat_json = json.load(mat_json)
-        
-        tline_json = open(f'{raw_path}{tline_json}')
-        tline_json = json.load(tline_json)
-        parser = tfe.data_parser(tline_json, mat_json)
+        meta_json = json.load(meta.open('r'))
+        tline_json = json.load(tline.open('r'))
+        parser = tfe.data_parser(tline_json, meta_json)
 
         for idx in range(10):
             for timestamp in parser.player_timelines[idx].values():
@@ -66,5 +61,4 @@ def extract(server):
         feature.to_csv(save_name, index=False, encoding='utf-8')
 
 if __name__ == '__main__':
-    server = sys.argv[1]
-    extract(server)
+    extract()

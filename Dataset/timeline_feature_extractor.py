@@ -68,7 +68,7 @@ class data_parser:
         feature = {
             'time': None,
             # champion
-            'mage': 0, 'fighter': 0, 'support': 0, 'tank': 0, 'assassin': 0, 'marksman': 0,
+            'Mage': 0, 'Fighter': 0, 'Support': 0, 'Tank': 0, 'Assassin': 0, 'Marksman': 0,
             # player position
             'TOP': 0, 'MIDDLE': 0, 'BOTTOM': 0, 'UTILITY': 0, 'JUNGLE': 0,
             # location
