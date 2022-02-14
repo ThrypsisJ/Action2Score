@@ -1,4 +1,4 @@
-from torch import nn, optim, zeros, ones, cuda
+from torch import nn, optim, zeros, ones, tensor, exp, cuda
 from os.path import exists
 from os import makedirs, remove
 from pickle import load, dump, HIGHEST_PROTOCOL
@@ -126,3 +126,15 @@ class SubModel(nn.Module):
         output = self.linear(output)
         output = self.tanh(output)
         return output
+
+class BCEModel(Model):
+    def __init__(self, hidden_size, gru_layers, lr, zero_h0):
+        super(BCEModel, self).__init__(hidden_size, gru_layers, lr, zero_h0)
+
+    def loss_func(self, blue_score, red_score, winner):
+        criterion = nn.BCELoss()
+        p_blue = exp(blue_score-red_score) / (exp(blue_score-red_score)+1)
+
+        if winner == "blue" : target = tensor(1., device='cuda')
+        else                : target = tensor(0., device='cuda')
+        return criterion(p_blue, target)

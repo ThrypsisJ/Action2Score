@@ -1,9 +1,8 @@
-from torch import nn, optim, zeros
+from torch import nn, optim, zeros, ones, exp, tensor, cuda
 from os.path import exists
 from os import makedirs, remove
 from pickle import load, dump, HIGHEST_PROTOCOL
 from collections import OrderedDict
-from torch import cuda
 
 class Model():
     def __init__(self, dimensions, lr):
@@ -102,3 +101,15 @@ class SubModel(nn.Module):
     def forward(self, feature):
         output = self.sequence(feature)
         return output
+
+class BCEModel(Model):
+    def __init__(self, dimensions, lr):
+        super(BCEModel, self).__init__(dimensions, lr)
+
+    def loss_func(self, blue_score, red_score, winner):
+        criterion = nn.BCELoss()
+        p_blue = exp(blue_score-red_score) / (exp(blue_score-red_score)+1)
+
+        if winner == "blue" : target = tensor(1., device='cuda')
+        else                : target = tensor(0., device='cuda')
+        return criterion(p_blue, target)
