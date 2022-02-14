@@ -132,9 +132,10 @@ class BCEModel(Model):
         super(BCEModel, self).__init__(hidden_size, gru_layers, lr, zero_h0)
 
     def loss_func(self, blue_score, red_score, winner):
+        device = blue_score.device.type
         criterion = nn.BCELoss()
         p_blue = exp(blue_score-red_score) / (exp(blue_score-red_score)+1)
 
-        if winner == "blue" : target = tensor(1., device='cuda')
-        else                : target = tensor(0., device='cuda')
+        if winner == "blue" : target = tensor(1., device=device)
+        else                : target = tensor(0., device=device)
         return criterion(p_blue, target)
