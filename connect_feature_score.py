@@ -14,6 +14,7 @@ match_list = [match.name[:-4] for match in list((base_path / models[0]).glob('*'
 match_result = pd.read_csv(result_path)
 
 first = True
+feat_list = []
 for match in tqdm(match_list):
     features = pd.read_csv((csv_path / f'{match}.csv'))
     features.sort_values(['player', 'time'], ascending=[True, False]).reset_index(drop=True)
@@ -31,9 +32,7 @@ for match in tqdm(match_list):
             if reverse: p_scores.reverse()
             features.loc[features['player']==(player+1), model] = p_scores
             features.loc[features['player']==(player+1), 'win'] = True if (player+1) in winner else False
-    if first: features.to_csv('./experiment/scores_with_features.csv', index=False, mode='w'); first=False
-    else: features.to_csv('./experiment/scores_with_features.csv', index=False, mode='a')
-# %%
-convert = pd.read_csv('./experiment/scores_with_features.csv')
-convert.to_feather('./experiment/scores_with_features.ftr')
+    feat_list.append(features.copy())
+feat_list = pd.concat(feat_list, axis=0).reset_index(drop=True)
+feat_list.to_feather('./experiment/data_to_analysis/scores_with_features.ftr')
 # %%
