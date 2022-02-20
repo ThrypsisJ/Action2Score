@@ -19,3 +19,4 @@ experiment/matches_scores
 experiment/scores_with_matdata
 *.ftr
 feature_scores.csv
+data_to_analysis
